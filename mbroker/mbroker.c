@@ -4,7 +4,7 @@
 int main(int argc, char **argv) {
     char register_pipe[256];
     int max_sessions = 0;
-    
+
     if (argc != 3) {
         fprintf(stderr, "usage: mbroker <pipename> <max_sessions>\n");
         exit(-1);
@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "usage: mbroker <pipename> <max_sessions>\n");
         exit(-1);
     }
-    
+
     strcpy(register_pipe, argv[1]);
     sscanf(argv[2], "%d", &max_sessions);
 
@@ -22,7 +22,6 @@ int main(int argc, char **argv) {
         fprintf(stderr, "usage: mbroker <pipename> <max_sessions>\n");
         exit(-1);
     }
-
 
     return 0;
 }
