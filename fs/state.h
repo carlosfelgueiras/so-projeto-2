@@ -4,10 +4,18 @@
 #include "config.h"
 #include "operations.h"
 
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+
+/* Global variables in state.c that must be used in operations.c */
+extern pthread_rwlock_t *inode_rwlocks;
+extern pthread_mutex_t freeinode_ts_mutex;
+extern pthread_mutex_t free_blocks_mutex;
+extern pthread_mutex_t *open_file_entry_mutex;
+extern pthread_mutex_t free_open_file_entries_mutex;
 
 /**
  * Directory entry
@@ -17,7 +25,7 @@ typedef struct {
     int d_inumber;
 } dir_entry_t;
 
-typedef enum { T_FILE, T_DIRECTORY } inode_type;
+typedef enum { T_FILE, T_DIRECTORY, T_SYMLINK } inode_type;
 
 /**
  * Inode
@@ -27,7 +35,7 @@ typedef struct {
 
     size_t i_size;
     int i_data_block;
-
+    int number_hard_links;
     // in a more complete FS, more fields could exist here
 } inode_t;
 
@@ -61,5 +69,6 @@ void *data_block_get(int block_number);
 int add_to_open_file_table(int inumber, size_t offset);
 void remove_from_open_file_table(int fhandle);
 open_file_entry_t *get_open_file_entry(int fhandle);
+int open_file_table_lookup(int inum);
 
 #endif // STATE_H
