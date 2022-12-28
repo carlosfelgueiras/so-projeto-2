@@ -1,6 +1,32 @@
 #include "logging.h"
 #include <string.h>
 
+#define MANAGER_REGISTER_CODE_SIZE 289
+#define MANAGER_LIST_CODE_SIZE 257
+
+void request_box_creation(char *pipe_name, char *box_name) {
+    char register_code[MANAGER_REGISTER_CODE_SIZE] = {0};
+    register_code[0] = 3;
+    memcpy(register_code + 1, pipe_name, 256);
+    memcpy(register_code + 257, box_name, 32);
+    // Send to register pipe
+}
+
+void request_box_removal(char *pipe_name, char *box_name) {
+    char register_code[MANAGER_REGISTER_CODE_SIZE] = {0};
+    register_code[0] = 5;
+    memcpy(register_code + 1, pipe_name, 256);
+    memcpy(register_code + 257, box_name, 32);
+    // Send to register pipe
+}
+
+void request_box_list(char *pipe_name) {
+    char register_code[MANAGER_LIST_CODE_SIZE] = {0};
+    register_code[0] = 7;
+    memcpy(register_code + 1, pipe_name, 256);
+    // Send to register pipe
+}
+
 static void print_usage() {
     fprintf(stderr, "usage: \n"
                     "   manager <register_pipe> <pipe_name> create <box_name>\n"

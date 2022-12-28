@@ -1,6 +1,16 @@
 #include "logging.h"
 #include <string.h>
 
+#define SUBSCRIBER_REGISTER_CODE_SIZE 289
+
+void register_in_mbroker(char *pipe_name, char *box_name) {
+    char register_code[SUBSCRIBER_REGISTER_CODE_SIZE] = {0};
+    register_code[0] = 2;
+    memcpy(register_code + 1, pipe_name, 256);
+    memcpy(register_code + 257, box_name, 32);
+    // Send to register pipe
+}
+
 int main(int argc, char **argv) {
     char register_pipe[256];
     char pipe_name[256];
@@ -20,6 +30,8 @@ int main(int argc, char **argv) {
     strcpy(register_pipe, argv[1]);
     strcpy(pipe_name, argv[2]);
     strcpy(box_name, argv[3]);
+
+    register_in_mbroker(pipe_name, box_name);
 
     return 0;
 }
