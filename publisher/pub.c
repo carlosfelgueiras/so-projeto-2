@@ -1,33 +1,30 @@
-// logging.h????????????
-#include "betterassert.h"
+#include "logging.h"
+#include "protocol.h"
+
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <signal.h>
 
-#define PUBLISHER_REGISTER_CODE_SIZE 289
-#define PUBLISHER_MESSAGE_CODE_SIZE 1025
-#define PIPE_SIZE 257
-#define MESSAGE_SIZE 1025
 #define BOX_SIZE 33
 
-char tmp_pipe_name[PIPE_SIZE + 5];
+char tmp_pipe_name[P_PIPE_NAME_SIZE + 6];
 int pipe_status = 0;
 int pipe_fd;
 
 void register_in_mbroker(char *register_pipename, char *pipe_name,
                          char *box_name) {
-    char register_code[PUBLISHER_REGISTER_CODE_SIZE] = {0};
-    char register_pn[PIPE_SIZE + 5] = {0};
+    char register_code[P_PUB_REGISTER_SIZE] = {0};
+    char register_pn[P_PIPE_NAME_SIZE + 6] = {0};
 
     // Creating the code according to the protocol
-    register_code[0] = 1;
-    memcpy(register_code + 1, pipe_name, PIPE_SIZE - 1);
-    memcpy(register_code + PIPE_SIZE, box_name, BOX_SIZE - 1);
+    register_code[0] = P_PUB_REGISTER_CODE;
+    memcpy(register_code + 1, pipe_name, P_PIPE_NAME_SIZE);
+    memcpy(register_code + P_PIPE_NAME_SIZE + 1, box_name, BOX_SIZE - 1);
     sprintf(register_pn, "/tmp/%s", register_pipename);
 
     // Open register pipe
@@ -37,24 +34,27 @@ void register_in_mbroker(char *register_pipename, char *pipe_name,
     }
     // Writing the code to the register pipe
     ssize_t bytes_wr =
-        write(register_pipe_fd, register_code, PUBLISHER_REGISTER_CODE_SIZE);
-    ALWAYS_ASSERT(bytes_wr == PUBLISHER_REGISTER_CODE_SIZE,
-                  "pub: error sending register code");
+        write(register_pipe_fd, register_code, P_PUB_REGISTER_SIZE);
+
+    if (bytes_wr != P_PUB_REGISTER_SIZE) {
+        exit(-1);
+    }
+
     if (close(pipe_fd) < 0) { // Closing the register pipe
         exit(-1);
     }
 }
 
 void send_message_to_mbroker(char *message) {
-    char message_code[PUBLISHER_MESSAGE_CODE_SIZE] = {0};
+    char message_code[P_PUB_MESSAGE_SIZE] = {0};
     // Creating the code according to the protocol
     message_code[0] = 9;
-    memcpy(message_code + 1, message, MESSAGE_SIZE - 1);
+    memcpy(message_code + 1, message, P_MESSAGE_SIZE);
     // Writing the code to the associated pipe
-    ssize_t bytes_wr =
-        write(pipe_fd, message_code, PUBLISHER_MESSAGE_CODE_SIZE);
-    ALWAYS_ASSERT(bytes_wr == PUBLISHER_MESSAGE_CODE_SIZE,
-                  "pub: error sendind message");
+    ssize_t bytes_wr = write(pipe_fd, message_code, P_PUB_MESSAGE_SIZE);
+    if (bytes_wr != P_PUB_MESSAGE_SIZE) {
+        exit(-1);
+    };
 }
 
 static void signal_handler(int sig) {
@@ -64,7 +64,8 @@ static void signal_handler(int sig) {
 
     unlink(tmp_pipe_name);
 
-    switch (sig) { // since both signals cause simmilar effects, we use the same handler
+    switch (sig) { // since both signals cause simmilar effects, we use the same
+                   // handler
     case SIGPIPE:
         write(1, "[ERR]: unable to register on mbroker\n", 37);
         exit(EXIT_FAILURE);
@@ -79,10 +80,11 @@ static void signal_handler(int sig) {
 }
 
 int main(int argc, char **argv) {
-    char pipe_name[PIPE_SIZE] = {0};
+    char pipe_name[P_PIPE_NAME_SIZE + 1] = {0};
     pid_t pid;
 
-    if (signal(SIGPIPE, signal_handler) == SIG_ERR) { // swaps the signal handler
+    if (signal(SIGPIPE, signal_handler) ==
+        SIG_ERR) { // swaps the signal handler
         fprintf(stderr, "signal\n");
         exit(-1);
     }
@@ -97,8 +99,8 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    if ((strlen(argv[1]) > PIPE_SIZE - 1) ||
-        (strlen(argv[2]) > PIPE_SIZE - 6) ||
+    if ((strlen(argv[1]) > P_PIPE_NAME_SIZE) ||
+        (strlen(argv[2]) > P_PIPE_NAME_SIZE - 5) ||
         (strlen(argv[3]) >
          BOX_SIZE - 1)) { // Verifying the correct usage of arguments
         fprintf(stderr, "usage: pub <register_pipe_name> <box_name>\n");
@@ -131,17 +133,18 @@ int main(int argc, char **argv) {
 
     // Opening the associated pipe
     pipe_fd = open(tmp_pipe_name, O_WRONLY);
+
     pipe_status = 1;
 
     if (pipe_fd < 0) {
         exit(-1);
     }
 
-    char message[MESSAGE_SIZE];
+    char message[P_MESSAGE_SIZE + 1];
     while (1) {
         // Read the message from stdin
-        memset(message, 0, MESSAGE_SIZE);
-        if (fgets(message, MESSAGE_SIZE, stdin) == NULL) {
+        memset(message, 0, P_MESSAGE_SIZE + 1);
+        if (fgets(message, P_MESSAGE_SIZE + 1, stdin) == NULL) {
             break;
         }
         send_message_to_mbroker(message);
