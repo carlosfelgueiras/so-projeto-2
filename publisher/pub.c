@@ -10,14 +10,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-char tmp_pipe_name[P_PIPE_NAME_SIZE + 6];   //Full name of the pipe
-int pipe_status = 0;                        //If the pipe is open or not
-int pipe_fd;                                //File descriptor of the pipe
-
+char tmp_pipe_name[P_PIPE_NAME_SIZE + 6]; // Full name of the pipe
+int pipe_status = 0;                      // If the pipe is open or not
+int pipe_fd;                              // File descriptor of the pipe
 
 void register_in_mbroker(char *register_pipename, char *pipe_name,
                          char *box_name) {
-    //Function that register the publisher in mbroker
+    // Function that register the publisher in mbroker
     char register_code[P_PUB_REGISTER_SIZE] = {0};
     char register_pn[P_PIPE_NAME_SIZE + 6] = {0};
 
@@ -36,7 +35,7 @@ void register_in_mbroker(char *register_pipename, char *pipe_name,
     ssize_t bytes_wr =
         write(register_pipe_fd, register_code, P_PUB_REGISTER_SIZE);
 
-    if (bytes_wr != P_PUB_REGISTER_SIZE) { //Chekcks if the code was fully sent
+    if (bytes_wr != P_PUB_REGISTER_SIZE) { // Chekcks if the code was fully sent
         exit(-1);
     }
 
@@ -46,7 +45,7 @@ void register_in_mbroker(char *register_pipename, char *pipe_name,
 }
 
 void send_message_to_mbroker(char *message) {
-    //function that creates the code to send the message
+    // function that creates the code to send the message
     char message_code[P_PUB_MESSAGE_SIZE] = {0};
     // Creating the code according to the protocol
     message_code[0] = 9;
@@ -63,18 +62,18 @@ static void signal_handler(int sig) {
         close(pipe_fd);
     }
 
-    unlink(tmp_pipe_name); //Erases the pipe from tmp directory
+    unlink(tmp_pipe_name); // Erases the pipe from tmp directory
     ssize_t bytes_wr;
-    (void) bytes_wr;
+    (void)bytes_wr;
     switch (sig) { // since both signals cause simmilar effects, we use the same
                    // handler
     case SIGPIPE:
-        bytes_wr=write(1, "[ERR]: unable to register on mbroker\n", 37);
+        bytes_wr = write(1, "[ERR]: unable to register on mbroker\n", 37);
         _exit(EXIT_FAILURE);
         break;
     case SIGINT:
-        bytes_wr=write(1, "pipes closed and program terminated\n", 37);
-        signal(sig,SIG_DFL);
+        bytes_wr = write(1, "pipes closed and program terminated\n", 37);
+        signal(sig, SIG_DFL);
         raise(sig);
         break;
     default:
@@ -92,7 +91,8 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    if (signal(SIGINT, signal_handler) == SIG_ERR) { // swaps the signal handler for SIGINT
+    if (signal(SIGINT, signal_handler) ==
+        SIG_ERR) { // swaps the signal handler for SIGINT
         fprintf(stderr, "signal\n");
         exit(-1);
     }
@@ -140,13 +140,13 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    pipe_status = 1; //Changes to 1 if the pipe is open
+    pipe_status = 1; // Changes to 1 if the pipe is open
 
     char message[P_MESSAGE_SIZE + 1];
     while (1) {
         // Read the message from stdin
         memset(message, 0, P_MESSAGE_SIZE + 1);
-        //Fails if it reads EOF
+        // Fails if it reads EOF
         if (fgets(message, P_MESSAGE_SIZE + 1, stdin) == NULL) {
             break;
         }
