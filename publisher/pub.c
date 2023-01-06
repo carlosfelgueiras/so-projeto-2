@@ -40,7 +40,7 @@ void register_in_mbroker(char *register_pipename, char *pipe_name,
         exit(-1);
     }
 
-    if (close(pipe_fd) < 0) { // Closing the register pipe
+    if (close(register_pipe_fd) < 0) { // Closing the register pipe
         exit(-1);
     }
 }
