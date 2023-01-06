@@ -10,13 +10,16 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-char tmp_pipe_name[P_PIPE_NAME_SIZE + 6];
-int pipe_status = 0;
-int pipe_fd;
-int msg_count = 0;
+char tmp_pipe_name[P_PIPE_NAME_SIZE + 6]; //Full name of the pipe
+char number_of_messages[20]="0";          //String with the total number of messages 
+int pipe_status = 0;                      //If the pipe is open or not
+int pipe_fd;                              //File descriptor of the pipe
+
 
 void register_in_mbroker(char *register_pipename, char *pipe_name,
                          char *box_name) {
+    /*Funtion that register the subscriber in mbroker*/
+    
     char register_code[P_SUB_REGISTER_SIZE] = {0};
     char register_pn[P_PIPE_NAME_SIZE + 6] = {0};
 
@@ -35,7 +38,7 @@ void register_in_mbroker(char *register_pipename, char *pipe_name,
     ssize_t bytes_wr =
         write(register_pipe_fd, register_code, P_SUB_REGISTER_SIZE);
 
-    if (bytes_wr != P_SUB_REGISTER_SIZE) {
+    if (bytes_wr != P_SUB_REGISTER_SIZE) { //Verifying if the code was sent completely to the pipe
         exit(-1);
     }
 
@@ -49,38 +52,34 @@ static void signal_handler(int sig) {
         close(pipe_fd);
     }
 
-    unlink(tmp_pipe_name);
+    unlink(tmp_pipe_name); // Delete the pipe im tmp directory
 
-    // char value[20];
     ssize_t bytes_wr;
     (void) bytes_wr;
     switch (sig) { // since both signals cause simmilar effects, we use the same
                    // handler
     case SIGPIPE:
         bytes_wr=write(1, "[ERR]: unable to register on mbroker\n", 37);
-        exit(EXIT_FAILURE);
+        _exit(EXIT_FAILURE);
         break;
     case SIGINT:
 
         bytes_wr=write(1,
               "pipes closed and program terminated\nnumber of messages: ", 37);
+        bytes_wr=write(1,number_of_messages,20);
         bytes_wr=write(1, "\n", 1);
-        exit(0);
+        signal(sig,SIG_DFL);
+        raise(sig);
         break;
     default:
         break;
     }
 }
 
-void finish_program() {
-    printf("number of messages: %d", msg_count);
-    exit(0);
-}
-
 int main(int argc, char **argv) {
     char pipe_name[P_PIPE_NAME_SIZE + 1] = {0};
     pid_t pid;
-
+    //Changing the default handler to signal_handler for SIGPIPE and SIGINT
     if (signal(SIGPIPE, signal_handler) == SIG_ERR) {
         fprintf(stderr, "signal\n");
         exit(-1);
@@ -126,36 +125,40 @@ int main(int argc, char **argv) {
     }
 
     register_in_mbroker(argv[1], pipe_name, argv[3]);
-    /*como tratar se o broker rejeitar o broker*/
 
     // Opening the associated pipe
     pipe_fd = open(tmp_pipe_name, O_RDONLY);
-    pipe_status = 1;
 
     if (pipe_fd < 0) {
-        finish_program();
+        exit(-1);
     }
 
-    char message[P_MESSAGE_SIZE + 1];
+    pipe_status = 1; //Changes to one if the pipe is opened
+
+    char message[P_MESSAGE_SIZE + 1]; //Array that will hold the messages
     memset(message, 0, P_MESSAGE_SIZE + 1);
     while (1) {
         int code;
-
+        int msg_count;
         // if the pipe is closed exits the program
         if (read(pipe_fd, &code, 1) < 0) {
-            finish_program();
+            exit(-1);
         }
 
         // checks if the code is not corrupt
         if (code != P_SUB_MESSAGE_CODE) {
             exit(-1);
         }
+
+        //reads the message
         if (read(pipe_fd, message, P_MESSAGE_SIZE) != P_MESSAGE_SIZE) {
             exit(-1);
         }
 
         printf("%s\n", message);
-        msg_count++;
+        //Augments by one the number of messages read
+        sscanf(number_of_messages,"%d",&msg_count);
+        sprintf(number_of_messages,"%d",++msg_count);
     }
 
     return 0;
