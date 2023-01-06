@@ -10,8 +10,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define BOX_SIZE 33
-
 char tmp_pipe_name[P_PIPE_NAME_SIZE + 6];
 int pipe_status = 0;
 int pipe_fd;
@@ -24,7 +22,7 @@ void register_in_mbroker(char *register_pipename, char *pipe_name,
     // Creating the code according to the protocol
     register_code[0] = P_PUB_REGISTER_CODE;
     memcpy(register_code + 1, pipe_name, P_PIPE_NAME_SIZE);
-    memcpy(register_code + P_PIPE_NAME_SIZE + 1, box_name, BOX_SIZE - 1);
+    memcpy(register_code + P_PIPE_NAME_SIZE + 1, box_name, P_BOX_NAME_SIZE);
     sprintf(register_pn, "/tmp/%s", register_pipename);
 
     // Open register pipe
@@ -103,7 +101,7 @@ int main(int argc, char **argv) {
     if ((strlen(argv[1]) > P_PIPE_NAME_SIZE) ||
         (strlen(argv[2]) > P_PIPE_NAME_SIZE - 5) ||
         (strlen(argv[3]) >
-         BOX_SIZE - 1)) { // Verifying the correct usage of arguments
+         P_BOX_NAME_SIZE)) { // Verifying the correct usage of arguments
         fprintf(stderr, "usage: pub <register_pipe_name> <box_name>\n");
         exit(-1);
     }
