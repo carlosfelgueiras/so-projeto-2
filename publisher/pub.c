@@ -63,15 +63,16 @@ static void signal_handler(int sig) {
     }
 
     unlink(tmp_pipe_name);
-
+    ssize_t bytes_wr;
+    (void) bytes_wr;
     switch (sig) { // since both signals cause simmilar effects, we use the same
                    // handler
     case SIGPIPE:
-        write(1, "[ERR]: unable to register on mbroker\n", 37);
+        bytes_wr=write(1, "[ERR]: unable to register on mbroker\n", 37);
         exit(EXIT_FAILURE);
         break;
     case SIGINT:
-        write(1, "pipes closed and program terminated\n", 37);
+        bytes_wr=write(1, "pipes closed and program terminated\n", 37);
         exit(0);
         break;
     default:
