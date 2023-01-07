@@ -219,7 +219,7 @@ static void print_usage() {
 }
 
 int main(int argc, char **argv) {
-    char pipe_name[P_PIPE_NAME_SIZE + 1] = {0};
+    char pipe_name[P_PIPE_NAME_SIZE] = {0};
     pid_t pid;
 
     if (argc < 4 || argc > 5) {
