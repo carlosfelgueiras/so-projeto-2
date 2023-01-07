@@ -10,7 +10,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-char tmp_pipe_name[P_PIPE_NAME_SIZE + 6]; // Full name of the pipe
+char tmp_pipe_name[P_PIPE_NAME_SIZE + 5]; // Full name of the pipe
 char number_of_messages[20] = "0"; // String with the total number of messages
 int pipe_status = 0;               // If the pipe is open or not
 int pipe_fd;                       // File descriptor of the pipe
@@ -19,8 +19,8 @@ void register_in_mbroker(char *register_pipename, char *pipe_name,
                          char *box_name) {
     /*Funtion that register the subscriber in mbroker*/
 
-    char register_code[P_SUB_REGISTER_SIZE] = {0};
-    char register_pn[P_PIPE_NAME_SIZE + 6] = {0};
+    char register_code[P_SUB_REGISTER_SIZE];
+    char register_pn[P_PIPE_NAME_SIZE + 5] = {0};
 
     // Creating the code according to the protocol
     p_build_sub_register(register_code, pipe_name, box_name);
@@ -75,7 +75,7 @@ static void signal_handler(int sig) {
 }
 
 int main(int argc, char **argv) {
-    char pipe_name[P_PIPE_NAME_SIZE + 1] = {0};
+    char pipe_name[P_PIPE_NAME_SIZE] = {0};
     pid_t pid;
     // Changing the default handler to signal_handler for SIGPIPE and SIGINT
     if (signal(SIGPIPE, signal_handler) == SIG_ERR) {
@@ -93,10 +93,10 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    if ((strlen(argv[1]) > P_PIPE_NAME_SIZE) ||
-        (strlen(argv[2]) > P_PIPE_NAME_SIZE - 5) ||
+    if ((strlen(argv[1]) > P_PIPE_NAME_SIZE - 1) ||
+        (strlen(argv[2]) > P_PIPE_NAME_SIZE - 6) ||
         (strlen(argv[3]) >
-         P_BOX_NAME_SIZE)) { // Verifying the correct usage of arguments
+         P_BOX_NAME_SIZE - 1)) { // Verifying the correct usage of arguments
         fprintf(stderr, "usage: sub <register_pipe_name> <box_name>\n");
         exit(-1);
     }
@@ -133,8 +133,8 @@ int main(int argc, char **argv) {
 
     pipe_status = 1; // Changes to one if the pipe is opened
 
-    char message[P_MESSAGE_SIZE + 1]; // Array that will hold the messages
-    memset(message, 0, P_MESSAGE_SIZE + 1);
+    char message[P_MESSAGE_SIZE]; // Array that will hold the messages
+    memset(message, 0, P_MESSAGE_SIZE);
     while (1) {
         int code;
         int msg_count;
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
         printf("%s\n", message);
         // Augments by one the number of messages read
         sscanf(number_of_messages, "%d", &msg_count);
-        sprintf(number_of_messages, "%d", ++msg_count);
+        sprintf(number_of_messages, "%d", msg_count + 1);
     }
 
     return 0;

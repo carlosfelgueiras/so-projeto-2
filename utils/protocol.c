@@ -40,3 +40,11 @@ void p_build_box_removal(char dest[P_BOX_REMOVAL_SIZE],
     memcpy(dest + 1, pipe_name, P_PIPE_NAME_SIZE);
     memcpy(dest + P_PIPE_NAME_SIZE + 1, box_name, P_BOX_NAME_SIZE);
 }
+
+void p_build_box_listing(char dest[P_BOX_LISTING_SIZE],
+                         char pipe_name[P_PIPE_NAME_SIZE]) {
+    memset(dest, 0, P_BOX_LISTING_SIZE);
+
+    dest[0] = P_BOX_LISTING_CODE;
+    memcpy(dest + 1, pipe_name, P_PIPE_NAME_SIZE);
+}

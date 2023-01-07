@@ -10,10 +10,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-char tmp_pipe_name[P_PIPE_NAME_SIZE + 6]; // Full name of the pipe
+char tmp_pipe_name[P_PIPE_NAME_SIZE + 5]; // Full name of the pipe
+
+int compare_box(const void *a, const void *b) {
+    return strcmp( ((p_box_info *) a)->box_name, ((p_box_info *) b)->box_name);
+}
 
 int open_register_pipe(char *register_pipename) {
-    char register_pn[P_PIPE_NAME_SIZE + 6] = {0};
+    char register_pn[P_PIPE_NAME_SIZE + 5];
     sprintf(register_pn, "/tmp/%s", register_pipename);
 
     int register_pipe_fd = open(register_pn, O_WRONLY);
@@ -74,8 +78,8 @@ void request_box_creation(char *pipe_name, char *box_name) {
 
     int pipe_fd = open_pipe();
 
-    char response[P_BOX_CREATION_RESPONSE_SIZE + 1];
-    memset(response, 0, P_BOX_CREATION_RESPONSE_SIZE + 1);
+    char response[P_BOX_CREATION_RESPONSE_SIZE];
+    memset(response, 0, P_BOX_CREATION_RESPONSE_SIZE);
 
     if (read(pipe_fd, response, P_BOX_CREATION_RESPONSE_SIZE) !=
         P_BOX_CREATION_RESPONSE_SIZE) {
@@ -116,8 +120,8 @@ void request_box_removal(char *pipe_name, char *box_name) {
 
     int pipe_fd = open_pipe();
 
-    char response[P_BOX_REMOVAL_RESPONSE_SIZE + 1];
-    memset(response, 0, P_BOX_REMOVAL_RESPONSE_SIZE + 1);
+    char response[P_BOX_REMOVAL_RESPONSE_SIZE];
+    memset(response, 0, P_BOX_REMOVAL_RESPONSE_SIZE);
 
     if (read(pipe_fd, response, P_BOX_REMOVAL_RESPONSE_SIZE) !=
         P_BOX_REMOVAL_RESPONSE_SIZE) {
@@ -143,12 +147,68 @@ void request_box_removal(char *pipe_name, char *box_name) {
 }
 
 void request_box_list(char *pipe_name) {
-    char register_code[P_BOX_LISTING_SIZE] = {0};
-    register_code[0] = P_BOX_LISTING_CODE;
-    memcpy(register_code + 1, pipe_name, P_PIPE_NAME_SIZE);
+    char register_code[P_BOX_LISTING_SIZE];
+
+    p_build_box_listing(register_code, pipe_name);
+
     int register_pipe_fd = open_register_pipe(pipe_name);
-    // Send to register pipe
+
+    if (write(register_pipe_fd, register_code, P_BOX_CREATION_SIZE) !=
+        P_BOX_CREATION_SIZE) {
+        exit(-1);
+    }
+
     close_register_pipe(register_pipe_fd);
+
+    int pipe_fd = open_pipe();
+
+    p_box_info *array = (p_box_info *)malloc(sizeof(p_box_info));
+    unsigned int size = 0;
+    unsigned int cap = 1;
+
+    char buffer[P_BOX_LISTING_RESPONSE_SIZE];
+
+    while (1) {
+        if (read(pipe_fd, buffer, P_BOX_LISTING_RESPONSE_CODE) !=
+            P_BOX_LISTING_RESPONSE_SIZE) {
+            exit(-1);
+        }
+
+        if (buffer[0] != P_BOX_LISTING_RESPONSE_CODE) {
+            exit(-1);
+        }
+
+        p_box_info box;
+        memcpy(&box, buffer + 2, sizeof(p_box_info));
+
+        if (size >= cap) {
+            cap *= 2;
+            array = (p_box_info *)realloc(array, cap * sizeof(p_box_info));
+        }
+
+        array[size++] = box;
+
+        if (buffer[1] == 1)
+            break;
+    }
+
+    close_pipe(pipe_fd);
+
+    if (size == 1 && strlen(array[0].box_name) == 0) {
+        fprintf(stdout, "NO BOXES FOUND\n");
+        free(array);
+        return;
+    }
+
+    qsort(array, (size_t) size, sizeof(p_box_info), compare_box);
+
+    for (int i = 0; i < size; i++) {
+        fprintf(stdout, "%s %zu %zu %zu\n", array[i].box_name,
+                (size_t) array[i].box_size, (size_t) array[i].n_publishers,
+                (size_t) array[i].n_subscribers);
+    }
+
+    free(array);
 }
 
 static void print_usage() {
@@ -167,8 +227,8 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    if ((strlen(argv[1]) > P_PIPE_NAME_SIZE) ||
-        (strlen(argv[2]) > P_PIPE_NAME_SIZE - 5)) {
+    if ((strlen(argv[1]) > P_PIPE_NAME_SIZE - 1) ||
+        (strlen(argv[2]) > P_PIPE_NAME_SIZE - 6)) {
         print_usage();
         exit(-1);
     }
@@ -204,7 +264,7 @@ int main(int argc, char **argv) {
         }
         break;
     case 5:
-        if (strlen(argv[4]) > P_BOX_NAME_SIZE) {
+        if (strlen(argv[4]) > P_BOX_NAME_SIZE - 1) {
             print_usage();
             exit(-1);
         }
@@ -223,5 +283,5 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    return -1;
+    return 0;
 }
