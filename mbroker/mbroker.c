@@ -19,34 +19,116 @@ void send_message_to_client(char *message) {
     // Send to message pipe
 }
 
-void publisher(){
+void publisher() {
     char pipe[P_PIPE_NAME_SIZE];
     char box_name[P_BOX_NAME_SIZE];
-    if(read(register_pipe_fd,pipe,P_PIPE_NAME_SIZE)!=P_PIPE_NAME_SIZE){
+    if (read(register_pipe_fd, pipe, P_PIPE_NAME_SIZE) != P_PIPE_NAME_SIZE) {
         exit(-1);
     }
 
-    if(read(register_pipe_fd,box_name,P_BOX_NAME_SIZE)!=P_BOX_NAME_SIZE){
+    if (read(register_pipe_fd, box_name, P_BOX_NAME_SIZE) != P_BOX_NAME_SIZE) {
         exit(-1);
     }
-    printf("code: 1 %s %s",pipe,box_name);
+    printf("code: 1 %s %s\n", pipe, box_name);
 }
 
-void subscriber(){
+void subscriber() {
     char pipe[P_PIPE_NAME_SIZE];
     char box_name[P_BOX_NAME_SIZE];
-    if(read(register_pipe_fd,pipe,P_PIPE_NAME_SIZE)!=P_PIPE_NAME_SIZE){
+    if (read(register_pipe_fd, pipe, P_PIPE_NAME_SIZE) != P_PIPE_NAME_SIZE) {
         exit(-1);
     }
 
-    if(read(register_pipe_fd,box_name,P_BOX_NAME_SIZE)!=P_BOX_NAME_SIZE){
+    if (read(register_pipe_fd, box_name, P_BOX_NAME_SIZE) != P_BOX_NAME_SIZE) {
         exit(-1);
     }
-    printf("code: 2 %s %s",pipe,box_name);
+    printf("code: 2 %s %s\n", pipe, box_name);
+}
+
+void manager_box_creation() {
+    char pipe[P_PIPE_NAME_SIZE];
+    char box_name[P_BOX_NAME_SIZE];
+    if (read(register_pipe_fd, pipe, P_PIPE_NAME_SIZE) != P_PIPE_NAME_SIZE) {
+        exit(-1);
+    }
+
+    if (read(register_pipe_fd, box_name, P_BOX_NAME_SIZE) != P_BOX_NAME_SIZE) {
+        exit(-1);
+    }
+
+    char tmp_pipe_name[P_PIPE_NAME_SIZE + 5] = {0};
+    sprintf(tmp_pipe_name, "/tmp/%s", pipe);
+
+    int pipe_fd = open(tmp_pipe_name, O_WRONLY);
+
+    if (pipe_fd < 0) {
+        exit(-1);
+    }
+
+    p_response response_struct;
+    response_struct.return_code = 0;
+    strcpy(response_struct.error_message, "");
+
+    char response[P_BOX_CREATION_RESPONSE_CODE];
+    p_build_box_creation_response(response, response_struct);
+
+    if (write(pipe_fd, response, P_BOX_CREATION_RESPONSE_SIZE) != P_BOX_CREATION_RESPONSE_SIZE) {
+        exit(-1);
+    }
+
+    if (close(pipe_fd) < 0) {
+        exit(-1);
+    }
+
+    printf("code: 3 %s %s\n", pipe, box_name);
+}
+
+void manager_box_removal() {
+    char pipe[P_PIPE_NAME_SIZE];
+    char box_name[P_BOX_NAME_SIZE];
+    if (read(register_pipe_fd, pipe, P_PIPE_NAME_SIZE) != P_PIPE_NAME_SIZE) {
+        exit(-1);
+    }
+
+    if (read(register_pipe_fd, box_name, P_BOX_NAME_SIZE) != P_BOX_NAME_SIZE) {
+        exit(-1);
+    }
+
+    char tmp_pipe_name[P_PIPE_NAME_SIZE + 5] = {0};
+    sprintf(tmp_pipe_name, "/tmp/%s", pipe);
+
+    int pipe_fd = open(tmp_pipe_name, O_WRONLY);
+
+    if (pipe_fd < 0) {
+        exit(-1);
+    }
+
+    p_response response_struct;
+    response_struct.return_code = -1;
+    strcpy(response_struct.error_message, "ola :)");
+
+    char response[P_BOX_CREATION_RESPONSE_CODE];
+    p_build_box_creation_response(response, response_struct);
+
+    if (write(pipe_fd, response, P_BOX_CREATION_RESPONSE_SIZE) != P_BOX_CREATION_RESPONSE_SIZE) {
+        exit(-1);
+    }
+
+    printf("code: 5 %s %s\n", pipe, box_name);
+}
+
+void manager_box_listing() {
+    char pipe[P_PIPE_NAME_SIZE];
+
+    if (read(register_pipe_fd, pipe, P_PIPE_NAME_SIZE) != P_PIPE_NAME_SIZE) {
+        exit(-1);
+    }
+
+    printf("code: 7 %s\n", pipe);
 }
 
 int main(int argc, char **argv) {
-    char register_pipe[256];
+    char register_pipe[P_PIPE_NAME_SIZE + 5];
     int max_sessions = 0;
 
     if (argc != 3) {
@@ -54,12 +136,12 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    if (strlen(argv[1]) > 255) {
+    if (strlen(argv[1]) > P_PIPE_NAME_SIZE - 1) {
         fprintf(stderr, "usage: mbroker <pipename> <max_sessions>\n");
         exit(-1);
     }
 
-    strcpy(register_pipe, argv[1]);
+    sprintf(register_pipe, "/tmp/%s", argv[1]);
     sscanf(argv[2], "%d", &max_sessions);
 
     if (max_sessions <= 0) {
@@ -80,37 +162,39 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    register_pipe_fd=open(register_pipe,O_RDONLY);
-    if (register_pipe_fd<0){
+    register_pipe_fd = open(register_pipe, O_RDONLY);
+    if (register_pipe_fd < 0) {
         exit(-1);
     }
 
-    while(1){
+    while (1) {
         char code;
-        if(read(register_pipe_fd,&code,1)!=1) {
-            exit(-1);
+        if (read(register_pipe_fd, &code, 1) != 1) {
+            code = 0;
         }
-        switch (code){
-            case P_PUB_REGISTER_CODE:
-                publisher();
-                break;
-            case P_SUB_REGISTER_CODE:
-                subscriber();
-                break;
-            case P_BOX_CREATION_CODE:
-                break;
-            case P_BOX_REMOVAL_CODE:
-                break;
-            case P_BOX_LISTING_CODE:
-                break; 
-            default:
-                break; 
+        switch (code) {
+        case P_PUB_REGISTER_CODE:
+            publisher();
+            break;
+        case P_SUB_REGISTER_CODE:
+            subscriber();
+            break;
+        case P_BOX_CREATION_CODE:
+            manager_box_creation();
+            break;
+        case P_BOX_REMOVAL_CODE:
+            manager_box_removal();
+            break;
+        case P_BOX_LISTING_CODE:
+            manager_box_listing();
+            break;
+        case 0:
+            break;
+        default:
+            if (close(register_pipe_fd) < 0) {
+                exit(-1);
+            }
+            break;
         }
     }
-
-    if(close(register_pipe_fd)<0) {
-        exit(-1);
-    }
-
-    return 0;
 }
