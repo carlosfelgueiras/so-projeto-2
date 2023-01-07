@@ -11,7 +11,7 @@ void p_build_pub_register(char dest[P_PUB_REGISTER_SIZE],
     memcpy(dest + P_PIPE_NAME_SIZE + 1, box_name, P_BOX_NAME_SIZE);
 }
 
-void p_build_pub_register(char dest[P_SUB_REGISTER_SIZE],
+void p_build_sub_register(char dest[P_SUB_REGISTER_SIZE],
                           char pipe_name[P_PIPE_NAME_SIZE],
                           char box_name[P_BOX_NAME_SIZE]) {
     memset(dest, 0, P_SUB_REGISTER_SIZE);
