@@ -59,11 +59,9 @@ void close_pipe(int fd) {
 }
 
 void request_box_creation(char *pipe_name, char *box_name) {
-    char register_code[P_BOX_CREATION_SIZE] = {0};
+    char register_code[P_BOX_CREATION_SIZE];
 
-    register_code[0] = P_BOX_CREATION_CODE;
-    memcpy(register_code + 1, pipe_name, P_PIPE_NAME_SIZE);
-    memcpy(register_code + P_PIPE_NAME_SIZE + 1, box_name, P_BOX_NAME_SIZE);
+    p_build_box_creation(register_code, pipe_name, box_name);
 
     int register_pipe_fd = open_register_pipe(pipe_name);
 
@@ -89,13 +87,12 @@ void request_box_creation(char *pipe_name, char *box_name) {
     }
 
     int32_t return_code;
-    memcpy((char *) &return_code, response+1, 4);
-
+    memcpy((char *)&return_code, response + 1, 4);
 
     if (return_code == 0) {
         fprintf(stdout, "OK\n");
     } else if (return_code == -1) {
-        fprintf(stdout, "ERROR %s\n", response+5);
+        fprintf(stdout, "ERROR %s\n", response + 5);
     } else {
         exit(-1);
     }
@@ -104,13 +101,11 @@ void request_box_creation(char *pipe_name, char *box_name) {
 }
 
 void request_box_removal(char *pipe_name, char *box_name) {
-    char register_code[P_BOX_REMOVAL_SIZE] = {0};
-    register_code[0] = P_BOX_REMOVAL_CODE;
-    memcpy(register_code + 1, pipe_name, P_PIPE_NAME_SIZE);
-    memcpy(register_code + P_PIPE_NAME_SIZE + 1, box_name, P_BOX_NAME_SIZE);
+    char register_code[P_BOX_REMOVAL_SIZE];
+
+    p_build_box_removal(register_code, pipe_name, box_name);
 
     int register_pipe_fd = open_register_pipe(pipe_name);
-
 
     if (write(register_pipe_fd, register_code, P_BOX_REMOVAL_SIZE) !=
         P_BOX_REMOVAL_SIZE) {
@@ -134,13 +129,12 @@ void request_box_removal(char *pipe_name, char *box_name) {
     }
 
     int32_t return_code;
-    memcpy((char *) &return_code, response+1, 4);
-
+    memcpy((char *)&return_code, response + 1, 4);
 
     if (return_code == 0) {
         fprintf(stdout, "OK\n");
     } else if (return_code == -1) {
-        fprintf(stdout, "ERROR %s\n", response+5);
+        fprintf(stdout, "ERROR %s\n", response + 5);
     } else {
         exit(-1);
     }

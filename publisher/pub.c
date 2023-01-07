@@ -17,13 +17,11 @@ int pipe_fd;                              // File descriptor of the pipe
 void register_in_mbroker(char *register_pipename, char *pipe_name,
                          char *box_name) {
     // Function that register the publisher in mbroker
-    char register_code[P_PUB_REGISTER_SIZE] = {0};
+    char register_code[P_PUB_REGISTER_SIZE];
     char register_pn[P_PIPE_NAME_SIZE + 6] = {0};
 
     // Creating the code according to the protocol
-    register_code[0] = P_PUB_REGISTER_CODE;
-    memcpy(register_code + 1, pipe_name, P_PIPE_NAME_SIZE);
-    memcpy(register_code + P_PIPE_NAME_SIZE + 1, box_name, P_BOX_NAME_SIZE);
+    p_build_pub_register(register_code, pipe_name, box_name);
     sprintf(register_pn, "/tmp/%s", register_pipename);
 
     // Open register pipe
