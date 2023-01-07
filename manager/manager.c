@@ -13,7 +13,7 @@
 char tmp_pipe_name[P_PIPE_NAME_SIZE + 5]; // Full name of the pipe
 
 int compare_box(const void *a, const void *b) {
-    return strcmp( ((p_box_info *) a)->box_name, ((p_box_info *) b)->box_name);
+    return strcmp(((p_box_info *)a)->box_name, ((p_box_info *)b)->box_name);
 }
 
 int open_register_pipe(char *register_pipename) {
@@ -34,20 +34,7 @@ void close_register_pipe(int register_pipe_fd) {
 }
 
 int open_pipe() {
-    if (unlink(tmp_pipe_name) != 0 &&
-        errno != ENOENT) { // To prevent the case where the pipe already exists
-        fprintf(stderr, "[ERR]: unlink(%s) failed: %s\n", tmp_pipe_name,
-                strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    // Create pipe
-    if (mkfifo(tmp_pipe_name, 0640) != 0) {
-        fprintf(stderr, "[ERR]: mkfifo failed: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    int pipe_fd = open(tmp_pipe_name, O_WRONLY);
+    int pipe_fd = open(tmp_pipe_name, O_RDONLY);
 
     if (pipe_fd < 0) {
         exit(-1);
@@ -62,12 +49,12 @@ void close_pipe(int fd) {
     }
 }
 
-void request_box_creation(char *pipe_name, char *box_name) {
+void request_box_creation(char *register_pipe_name, char *pipe_name, char *box_name) {
     char register_code[P_BOX_CREATION_SIZE];
 
     p_build_box_creation(register_code, pipe_name, box_name);
 
-    int register_pipe_fd = open_register_pipe(pipe_name);
+    int register_pipe_fd = open_register_pipe(register_pipe_name);
 
     if (write(register_pipe_fd, register_code, P_BOX_CREATION_SIZE) !=
         P_BOX_CREATION_SIZE) {
@@ -90,13 +77,13 @@ void request_box_creation(char *pipe_name, char *box_name) {
         exit(-1);
     }
 
-    int32_t return_code;
-    memcpy((char *)&return_code, response + 1, 4);
+    p_response response_struct;
+    memcpy(&response_struct, response+1, sizeof(p_response));
 
-    if (return_code == 0) {
+    if (response_struct.return_code == 0) {
         fprintf(stdout, "OK\n");
-    } else if (return_code == -1) {
-        fprintf(stdout, "ERROR %s\n", response + 5);
+    } else if (response_struct.return_code == -1) {
+        fprintf(stdout, "ERROR %s\n", response_struct.error_message);
     } else {
         exit(-1);
     }
@@ -104,12 +91,12 @@ void request_box_creation(char *pipe_name, char *box_name) {
     close_pipe(pipe_fd);
 }
 
-void request_box_removal(char *pipe_name, char *box_name) {
+void request_box_removal(char *register_pipe_name, char *pipe_name, char *box_name) {
     char register_code[P_BOX_REMOVAL_SIZE];
 
     p_build_box_removal(register_code, pipe_name, box_name);
 
-    int register_pipe_fd = open_register_pipe(pipe_name);
+    int register_pipe_fd = open_register_pipe(register_pipe_name);
 
     if (write(register_pipe_fd, register_code, P_BOX_REMOVAL_SIZE) !=
         P_BOX_REMOVAL_SIZE) {
@@ -132,13 +119,13 @@ void request_box_removal(char *pipe_name, char *box_name) {
         exit(-1);
     }
 
-    int32_t return_code;
-    memcpy((char *)&return_code, response + 1, 4);
+    p_response response_struct;
+    memcpy(&response_struct, response+1, sizeof(p_response));
 
-    if (return_code == 0) {
+    if (response_struct.return_code == 0) {
         fprintf(stdout, "OK\n");
-    } else if (return_code == -1) {
-        fprintf(stdout, "ERROR %s\n", response + 5);
+    } else if (response_struct.return_code == -1) {
+        fprintf(stdout, "ERROR %s\n", response_struct.error_message);
     } else {
         exit(-1);
     }
@@ -200,12 +187,12 @@ void request_box_list(char *pipe_name) {
         return;
     }
 
-    qsort(array, (size_t) size, sizeof(p_box_info), compare_box);
+    qsort(array, (size_t)size, sizeof(p_box_info), compare_box);
 
     for (int i = 0; i < size; i++) {
         fprintf(stdout, "%s %zu %zu %zu\n", array[i].box_name,
-                (size_t) array[i].box_size, (size_t) array[i].n_publishers,
-                (size_t) array[i].n_subscribers);
+                (size_t)array[i].box_size, (size_t)array[i].n_publishers,
+                (size_t)array[i].n_subscribers);
     }
 
     free(array);
@@ -270,9 +257,9 @@ int main(int argc, char **argv) {
         }
 
         if (!strcmp(argv[3], "create")) {
-            request_box_creation(argv[1], argv[4]);
+            request_box_creation(argv[1], pipe_name, argv[4]);
         } else if (!strcmp(argv[3], "remove")) {
-            request_box_removal(argv[1], argv[4]);
+            request_box_removal(argv[1], pipe_name, argv[4]);
         } else {
             print_usage();
             exit(-1);

@@ -39,6 +39,11 @@ typedef struct __attribute__((__packed__)) {
     uint64_t n_subscribers;
 } p_box_info;
 
+typedef struct __attribute__((__packed__)) {
+    int32_t return_code;
+    char error_message[P_MESSAGE_SIZE];
+} p_response;
+
 void p_build_pub_register(char dest[P_PUB_REGISTER_SIZE],
                           char pipe_name[P_PIPE_NAME_SIZE],
                           char box_name[P_BOX_NAME_SIZE]);
@@ -48,8 +53,14 @@ void p_build_sub_register(char dest[P_SUB_REGISTER_SIZE],
 void p_build_box_creation(char dest[P_BOX_CREATION_SIZE],
                           char pipe_name[P_PIPE_NAME_SIZE],
                           char box_name[P_BOX_NAME_SIZE]);
+void p_build_box_creation_response(char dest[P_BOX_CREATION_RESPONSE_SIZE],
+                                   p_response response);
 void p_build_box_removal(char dest[P_BOX_REMOVAL_SIZE],
                          char pipe_name[P_PIPE_NAME_SIZE],
                          char box_name[P_BOX_NAME_SIZE]);
+void p_build_box_removal_response(char dest[P_BOX_REMOVAL_RESPONSE_SIZE],
+                                  p_response response);
 void p_build_box_listing(char dest[P_BOX_LISTING_SIZE],
                          char pipe_name[P_PIPE_NAME_SIZE]);
+void p_build_box_listing_response(char dest[P_BOX_LISTING_RESPONSE_SIZE],
+                                  uint8_t last, p_box_info info);
