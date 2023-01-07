@@ -1,3 +1,5 @@
+#pragma once
+
 #define P_PUB_REGISTER_CODE 1
 #define P_SUB_REGISTER_CODE 2
 #define P_BOX_CREATION_CODE 3
@@ -28,3 +30,15 @@
 #define P_UINT32_SIZE 4
 #define P_UINT64_SIZE 8
 
+void p_build_pub_register(char dest[P_PUB_REGISTER_SIZE],
+                          char pipe_name[P_PIPE_NAME_SIZE],
+                          char box_name[P_BOX_NAME_SIZE]);
+void p_build_sub_register(char dest[P_SUB_REGISTER_SIZE],
+                          char pipe_name[P_PIPE_NAME_SIZE],
+                          char box_name[P_BOX_NAME_SIZE]);
+void p_build_box_creation(char dest[P_BOX_CREATION_SIZE],
+                          char pipe_name[P_PIPE_NAME_SIZE],
+                          char box_name[P_BOX_NAME_SIZE]);
+void p_build_box_removal(char dest[P_BOX_REMOVAL_SIZE],
+                         char pipe_name[P_PIPE_NAME_SIZE],
+                         char box_name[P_BOX_NAME_SIZE]);

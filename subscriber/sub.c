@@ -23,9 +23,7 @@ void register_in_mbroker(char *register_pipename, char *pipe_name,
     char register_pn[P_PIPE_NAME_SIZE + 6] = {0};
 
     // Creating the code according to the protocol
-    register_code[0] = P_SUB_REGISTER_CODE;
-    memcpy(register_code + 1, pipe_name, P_PIPE_NAME_SIZE);
-    memcpy(register_code + P_PIPE_NAME_SIZE + 1, box_name, P_BOX_NAME_SIZE);
+    p_build_sub_register(register_code, pipe_name, box_name);
     sprintf(register_pn, "/tmp/%s", register_pipename);
 
     // Open register pipe
