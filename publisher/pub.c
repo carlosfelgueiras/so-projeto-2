@@ -10,7 +10,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-char tmp_pipe_name[P_PIPE_NAME_SIZE + 6]; // Full name of the pipe
+char tmp_pipe_name[P_PIPE_NAME_SIZE + 5]; // Full name of the pipe
 int pipe_status = 0;                      // If the pipe is open or not
 int pipe_fd;                              // File descriptor of the pipe
 
@@ -18,7 +18,7 @@ void register_in_mbroker(char *register_pipename, char *pipe_name,
                          char *box_name) {
     // Function that register the publisher in mbroker
     char register_code[P_PUB_REGISTER_SIZE];
-    char register_pn[P_PIPE_NAME_SIZE + 6] = {0};
+    char register_pn[P_PIPE_NAME_SIZE + 5] = {0};
 
     // Creating the code according to the protocol
     p_build_pub_register(register_code, pipe_name, box_name);
@@ -45,6 +45,8 @@ void register_in_mbroker(char *register_pipename, char *pipe_name,
 void send_message_to_mbroker(char *message) {
     // function that creates the code to send the message
     char message_code[P_PUB_MESSAGE_SIZE] = {0};
+
+    // TODO: make function that builds this message
     // Creating the code according to the protocol
     message_code[0] = 9;
     memcpy(message_code + 1, message, P_MESSAGE_SIZE);
@@ -80,7 +82,7 @@ static void signal_handler(int sig) {
 }
 
 int main(int argc, char **argv) {
-    char pipe_name[P_PIPE_NAME_SIZE + 1] = {0};
+    char pipe_name[P_PIPE_NAME_SIZE];
     pid_t pid;
 
     if (signal(SIGPIPE, signal_handler) ==
@@ -100,10 +102,10 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    if ((strlen(argv[1]) > P_PIPE_NAME_SIZE) ||
-        (strlen(argv[2]) > P_PIPE_NAME_SIZE - 5) ||
+    if ((strlen(argv[1]) > P_PIPE_NAME_SIZE - 1) ||
+        (strlen(argv[2]) > P_PIPE_NAME_SIZE - 6) ||
         (strlen(argv[3]) >
-         P_BOX_NAME_SIZE)) { // Verifying the correct usage of arguments
+         P_BOX_NAME_SIZE - 1)) { // Verifying the correct usage of arguments
         fprintf(stderr, "usage: pub <register_pipe_name> <box_name>\n");
         exit(-1);
     }
@@ -140,12 +142,12 @@ int main(int argc, char **argv) {
 
     pipe_status = 1; // Changes to 1 if the pipe is open
 
-    char message[P_MESSAGE_SIZE + 1];
+    char message[P_MESSAGE_SIZE];
     while (1) {
         // Read the message from stdin
-        memset(message, 0, P_MESSAGE_SIZE + 1);
+        memset(message, 0, P_MESSAGE_SIZE);
         // Fails if it reads EOF
-        if (fgets(message, P_MESSAGE_SIZE + 1, stdin) == NULL) {
+        if (fgets(message, P_MESSAGE_SIZE, stdin) == NULL) {
             break;
         }
         send_message_to_mbroker(message);

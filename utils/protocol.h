@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+
 #define P_PUB_REGISTER_CODE 1
 #define P_SUB_REGISTER_CODE 2
 #define P_BOX_CREATION_CODE 3
@@ -30,6 +32,13 @@
 #define P_UINT32_SIZE 4
 #define P_UINT64_SIZE 8
 
+typedef struct __attribute__((__packed__)) {
+    char box_name[32];
+    uint64_t box_size;
+    uint64_t n_publishers;
+    uint64_t n_subscribers;
+} p_box_info;
+
 void p_build_pub_register(char dest[P_PUB_REGISTER_SIZE],
                           char pipe_name[P_PIPE_NAME_SIZE],
                           char box_name[P_BOX_NAME_SIZE]);
@@ -42,3 +51,5 @@ void p_build_box_creation(char dest[P_BOX_CREATION_SIZE],
 void p_build_box_removal(char dest[P_BOX_REMOVAL_SIZE],
                          char pipe_name[P_PIPE_NAME_SIZE],
                          char box_name[P_BOX_NAME_SIZE]);
+void p_build_box_listing(char dest[P_BOX_LISTING_SIZE],
+                         char pipe_name[P_PIPE_NAME_SIZE]);
