@@ -123,7 +123,7 @@ void request_box_removal(char *register_pipe_name, char *pipe_name, char *box_na
     memcpy(&response_struct, response+1, sizeof(p_response));
 
     if (response_struct.return_code == 0) {
-        fprintf(stdout, "OK\n");
+        fprintf(stdout, "OK %s\n", response_struct.error_message);
     } else if (response_struct.return_code == -1) {
         fprintf(stdout, "ERROR %s\n", response_struct.error_message);
     } else {
