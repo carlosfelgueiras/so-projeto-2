@@ -72,7 +72,8 @@ void manager_box_creation() {
     char response[P_BOX_CREATION_RESPONSE_CODE];
     p_build_box_creation_response(response, response_struct);
 
-    if (write(pipe_fd, response, P_BOX_CREATION_RESPONSE_SIZE) != P_BOX_CREATION_RESPONSE_SIZE) {
+    if (write(pipe_fd, response, P_BOX_CREATION_RESPONSE_SIZE) !=
+        P_BOX_CREATION_RESPONSE_SIZE) {
         exit(-1);
     }
 
@@ -110,7 +111,8 @@ void manager_box_removal() {
     char response[P_BOX_CREATION_RESPONSE_CODE];
     p_build_box_removal_response(response, response_struct);
 
-    if (write(pipe_fd, response, P_BOX_CREATION_RESPONSE_SIZE) != P_BOX_CREATION_RESPONSE_SIZE) {
+    if (write(pipe_fd, response, P_BOX_CREATION_RESPONSE_SIZE) !=
+        P_BOX_CREATION_RESPONSE_SIZE) {
         exit(-1);
     }
 
