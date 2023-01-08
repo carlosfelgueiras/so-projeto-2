@@ -70,6 +70,6 @@ void p_build_box_listing_response(char dest[P_BOX_LISTING_RESPONSE_SIZE],
     memset(dest, 0, P_BOX_LISTING_RESPONSE_SIZE);
 
     dest[0] = P_BOX_LISTING_RESPONSE_CODE;
-    dest[1] = (char) last;
+    dest[1] = (char)last;
     memcpy(dest + 2, &info, sizeof(p_box_info));
 }

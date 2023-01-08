@@ -49,7 +49,8 @@ void close_pipe(int fd) {
     }
 }
 
-void request_box_creation(char *register_pipe_name, char *pipe_name, char *box_name) {
+void request_box_creation(char *register_pipe_name, char *pipe_name,
+                          char *box_name) {
     char register_code[P_BOX_CREATION_SIZE];
 
     p_build_box_creation(register_code, pipe_name, box_name);
@@ -78,7 +79,7 @@ void request_box_creation(char *register_pipe_name, char *pipe_name, char *box_n
     }
 
     p_response response_struct;
-    memcpy(&response_struct, response+1, sizeof(p_response));
+    memcpy(&response_struct, response + 1, sizeof(p_response));
 
     if (response_struct.return_code == 0) {
         fprintf(stdout, "OK\n");
@@ -91,7 +92,8 @@ void request_box_creation(char *register_pipe_name, char *pipe_name, char *box_n
     close_pipe(pipe_fd);
 }
 
-void request_box_removal(char *register_pipe_name, char *pipe_name, char *box_name) {
+void request_box_removal(char *register_pipe_name, char *pipe_name,
+                         char *box_name) {
     char register_code[P_BOX_REMOVAL_SIZE];
 
     p_build_box_removal(register_code, pipe_name, box_name);
@@ -120,7 +122,7 @@ void request_box_removal(char *register_pipe_name, char *pipe_name, char *box_na
     }
 
     p_response response_struct;
-    memcpy(&response_struct, response+1, sizeof(p_response));
+    memcpy(&response_struct, response + 1, sizeof(p_response));
 
     if (response_struct.return_code == 0) {
         fprintf(stdout, "OK %s\n", response_struct.error_message);
