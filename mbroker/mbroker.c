@@ -108,7 +108,7 @@ void manager_box_removal() {
     strcpy(response_struct.error_message, "ola :)");
 
     char response[P_BOX_CREATION_RESPONSE_CODE];
-    p_build_box_creation_response(response, response_struct);
+    p_build_box_removal_response(response, response_struct);
 
     if (write(pipe_fd, response, P_BOX_CREATION_RESPONSE_SIZE) != P_BOX_CREATION_RESPONSE_SIZE) {
         exit(-1);
@@ -167,6 +167,11 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
+    int write_fd = open(register_pipe, O_WRONLY);
+    if (write_fd < 0) {
+        exit(-1);
+    }
+
     while (1) {
         char code;
         if (read(register_pipe_fd, &code, 1) != 1) {
@@ -192,6 +197,9 @@ int main(int argc, char **argv) {
             break;
         default:
             if (close(register_pipe_fd) < 0) {
+                exit(-1);
+            }
+            if (close(write_fd) < 0) {
                 exit(-1);
             }
             break;
