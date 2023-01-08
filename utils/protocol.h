@@ -40,6 +40,7 @@ typedef struct __attribute__((__packed__)) {
 } p_box_info;
 
 typedef struct __attribute__((__packed__)) {
+    uint8_t protocol_code;
     int32_t return_code;
     char error_message[P_MESSAGE_SIZE];
 } p_response;

@@ -34,9 +34,7 @@ void p_build_box_creation(char dest[P_BOX_CREATION_SIZE],
 void p_build_box_creation_response(char dest[P_BOX_CREATION_RESPONSE_SIZE],
                                    p_response response) {
     memset(dest, 0, P_BOX_CREATION_RESPONSE_SIZE);
-    dest[0] = P_BOX_CREATION_RESPONSE_CODE;
-
-    memcpy(dest + 1, &response, sizeof(response));
+    memcpy(dest, &response, sizeof(response));
 }
 
 void p_build_box_removal(char dest[P_BOX_REMOVAL_SIZE],
@@ -52,9 +50,7 @@ void p_build_box_removal(char dest[P_BOX_REMOVAL_SIZE],
 void p_build_box_removal_response(char dest[P_BOX_REMOVAL_RESPONSE_SIZE],
                                   p_response response) {
     memset(dest, 0, P_BOX_REMOVAL_RESPONSE_SIZE);
-    dest[0] = P_BOX_REMOVAL_RESPONSE_CODE;
-
-    memcpy(dest + 1, &response, sizeof(response));
+    memcpy(dest, &response, sizeof(response));
 }
 
 void p_build_box_listing(char dest[P_BOX_LISTING_SIZE],

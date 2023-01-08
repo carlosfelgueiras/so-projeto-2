@@ -66,13 +66,11 @@ void manager_box_creation() {
     }
 
     p_response response_struct;
-    response_struct.return_code = 0;
-    strcpy(response_struct.error_message, "");
+    response_struct.protocol_code=P_BOX_CREATION_RESPONSE_CODE;
+    response_struct.return_code = -1;
+    strcpy(response_struct.error_message, "kjsdbfjeb");
 
-    char response[P_BOX_CREATION_RESPONSE_CODE];
-    p_build_box_creation_response(response, response_struct);
-
-    if (write(pipe_fd, response, P_BOX_CREATION_RESPONSE_SIZE) !=
+    if (write(pipe_fd, &response_struct, P_BOX_CREATION_RESPONSE_SIZE) !=
         P_BOX_CREATION_RESPONSE_SIZE) {
         exit(-1);
     }
@@ -105,14 +103,16 @@ void manager_box_removal() {
     }
 
     p_response response_struct;
+    response_struct.protocol_code=P_BOX_REMOVAL_RESPONSE_CODE;
     response_struct.return_code = -1;
     strcpy(response_struct.error_message, "ola :)");
 
-    char response[P_BOX_CREATION_RESPONSE_CODE];
-    p_build_box_removal_response(response, response_struct);
-
-    if (write(pipe_fd, response, P_BOX_CREATION_RESPONSE_SIZE) !=
+    if (write(pipe_fd, &response_struct, P_BOX_CREATION_RESPONSE_SIZE) !=
         P_BOX_CREATION_RESPONSE_SIZE) {
+        exit(-1);
+    }
+
+    if (close(pipe_fd) < 0) {
         exit(-1);
     }
 

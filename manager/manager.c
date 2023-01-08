@@ -66,25 +66,21 @@ void request_box_creation(char *register_pipe_name, char *pipe_name,
 
     int pipe_fd = open_pipe();
 
-    char response[P_BOX_CREATION_RESPONSE_SIZE];
-    memset(response, 0, P_BOX_CREATION_RESPONSE_SIZE);
+    p_response response;
 
-    if (read(pipe_fd, response, P_BOX_CREATION_RESPONSE_SIZE) !=
+    if (read(pipe_fd, &response, P_BOX_CREATION_RESPONSE_SIZE) !=
         P_BOX_CREATION_RESPONSE_SIZE) {
         exit(-1);
     }
 
-    if (response[0] != P_BOX_CREATION_RESPONSE_CODE) {
+    if (response.protocol_code != P_BOX_CREATION_RESPONSE_CODE) {
         exit(-1);
     }
 
-    p_response response_struct;
-    memcpy(&response_struct, response + 1, sizeof(p_response));
-
-    if (response_struct.return_code == 0) {
+    if (response.return_code == 0) {
         fprintf(stdout, "OK\n");
-    } else if (response_struct.return_code == -1) {
-        fprintf(stdout, "ERROR %s\n", response_struct.error_message);
+    } else if (response.return_code == -1) {
+        fprintf(stdout, "ERROR %s\n", response.error_message);
     } else {
         exit(-1);
     }
@@ -109,25 +105,21 @@ void request_box_removal(char *register_pipe_name, char *pipe_name,
 
     int pipe_fd = open_pipe();
 
-    char response[P_BOX_REMOVAL_RESPONSE_SIZE];
-    memset(response, 0, P_BOX_REMOVAL_RESPONSE_SIZE);
+    p_response response;
 
-    if (read(pipe_fd, response, P_BOX_REMOVAL_RESPONSE_SIZE) !=
+    if (read(pipe_fd, &response, P_BOX_REMOVAL_RESPONSE_SIZE) !=
         P_BOX_REMOVAL_RESPONSE_SIZE) {
         exit(-1);
     }
 
-    if (response[0] != P_BOX_REMOVAL_RESPONSE_CODE) {
+    if (response.protocol_code != P_BOX_REMOVAL_RESPONSE_CODE) {
         exit(-1);
     }
 
-    p_response response_struct;
-    memcpy(&response_struct, response + 1, sizeof(p_response));
-
-    if (response_struct.return_code == 0) {
-        fprintf(stdout, "OK %s\n", response_struct.error_message);
-    } else if (response_struct.return_code == -1) {
-        fprintf(stdout, "ERROR %s\n", response_struct.error_message);
+    if (response.return_code == 0) {
+        fprintf(stdout, "OK\n");
+    } else if (response.return_code == -1) {
+        fprintf(stdout, "ERROR %s\n", response.error_message);
     } else {
         exit(-1);
     }
