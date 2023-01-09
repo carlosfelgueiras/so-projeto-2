@@ -1,11 +1,11 @@
-#include "logging.h"
-#include "protocol.h"
-#include "operations.h"
 #include "mbroker.h"
+#include "logging.h"
+#include "operations.h"
+#include "protocol.h"
 
-#include <pthread.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,9 +42,9 @@ void box_delete(int i) {
     pthread_mutex_unlock(&box_usage_mutex);
 }
 
-int box_info_lookup(char *box_name){
-    for(int i=0; i < box_max_number; i++){
-        if(box_usage[i]==TAKEN && !strcmp(box_name,box_info[i].box_name))
+int box_info_lookup(char *box_name) {
+    for (int i = 0; i < box_max_number; i++) {
+        if (box_usage[i] == TAKEN && !strcmp(box_name, box_info[i].box_name))
             return i;
     }
     return -1;
@@ -103,7 +103,7 @@ void manager_box_creation() {
         exit(-1);
     }
 
-    tfs_open(box_name,TFS_O_CREAT);
+    tfs_open(box_name, TFS_O_CREAT);
     tfs_close(box_name);
 
     p_response response_struct;
@@ -141,7 +141,7 @@ void manager_box_removal() {
     }
 
     p_response response_struct;
-    response_struct.protocol_code=P_BOX_REMOVAL_RESPONSE_CODE;
+    response_struct.protocol_code = P_BOX_REMOVAL_RESPONSE_CODE;
     response_struct.return_code = -1;
     strcpy(response_struct.error_message, "ola :)");
 
@@ -192,30 +192,32 @@ int main(int argc, char **argv) {
     tfs_params params = tfs_default_params();
     params.max_open_files_count = max_sessions;
 
-    if(tfs_init(&params)==-1){
-        exit(-1);
-    }
-    
-    box_max_number=params.max_inode_count;
-
-    box_info=(p_box_info*)malloc(sizeof(p_box_info)*box_max_number);
-    if(box_info==NULL){
-        exit(-1);
-    }
-    box_info_mutex=(pthread_mutex_t*)malloc(sizeof(pthread_mutex_t)*box_max_number);
-    if(box_info_mutex==NULL){
-        exit(-1);
-    }
-    box_usage=(box_usage_state_t*)malloc(sizeof(box_usage_state_t)*box_max_number);
-    if(box_usage==NULL){
+    if (tfs_init(&params) == -1) {
         exit(-1);
     }
 
-    for(int i=0;i<params.max_inode_count;i++){
-        if(pthread_mutex_init(&box_info_mutex[i],NULL)!=0) {
+    box_max_number = params.max_inode_count;
+
+    box_info = (p_box_info *)malloc(sizeof(p_box_info) * box_max_number);
+    if (box_info == NULL) {
+        exit(-1);
+    }
+    box_info_mutex =
+        (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t) * box_max_number);
+    if (box_info_mutex == NULL) {
+        exit(-1);
+    }
+    box_usage =
+        (box_usage_state_t *)malloc(sizeof(box_usage_state_t) * box_max_number);
+    if (box_usage == NULL) {
+        exit(-1);
+    }
+
+    for (int i = 0; i < params.max_inode_count; i++) {
+        if (pthread_mutex_init(&box_info_mutex[i], NULL) != 0) {
             exit(-1);
         }
-        box_usage[i]=FREE;
+        box_usage[i] = FREE;
     }
 
     if (unlink(register_pipe) != 0 &&
