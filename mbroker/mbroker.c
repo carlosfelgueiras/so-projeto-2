@@ -18,7 +18,7 @@ p_box_info *box_info;
 pthread_mutex_t *box_info_mutex;
 box_usage_state_t *box_usage;
 pthread_mutex_t box_usage_mutex = PTHREAD_MUTEX_INITIALIZER;
-int box_max_number;
+long unsigned int box_max_number;
 
 int box_alloc(void) {
     pthread_mutex_lock(&box_usage_mutex);
@@ -103,8 +103,8 @@ void manager_box_creation() {
         exit(-1);
     }
 
-    tfs_open(box_name, TFS_O_CREAT);
-    tfs_close(box_name);
+    int fd=tfs_open(box_name, TFS_O_CREAT);
+    tfs_close(fd);
 
     p_response response_struct;
 
@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
     }
 
     tfs_params params = tfs_default_params();
-    params.max_open_files_count = max_sessions;
+    params.max_open_files_count = (size_t) max_sessions;
 
     if (tfs_init(&params) == -1) {
         exit(-1);
