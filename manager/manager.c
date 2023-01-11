@@ -143,7 +143,7 @@ void request_box_list(char *pipe_name) {
 
     int pipe_fd = open_pipe();
 
-    p_box_info *array = (p_box_info *)malloc(sizeof(p_box_info));
+    p_box_response *array = (p_box_response *)malloc(sizeof(p_box_response));
     unsigned int size = 0;
     unsigned int cap = 1;
 
@@ -159,12 +159,12 @@ void request_box_list(char *pipe_name) {
             exit(-1);
         }
 
-        p_box_info box;
-        memcpy(&box, buffer + 2, sizeof(p_box_info));
+        p_box_response box;
+        memcpy(&box, buffer + 2, sizeof(p_box_response));
 
         if (size >= cap) {
             cap *= 2;
-            array = (p_box_info *)realloc(array, cap * sizeof(p_box_info));
+            array = (p_box_response *)realloc(array, cap * sizeof(p_box_response));
         }
 
         array[size++] = box;
@@ -181,7 +181,7 @@ void request_box_list(char *pipe_name) {
         return;
     }
 
-    qsort(array, (size_t)size, sizeof(p_box_info), compare_box);
+    qsort(array, (size_t)size, sizeof(p_box_response), compare_box);
 
     for (int i = 0; i < size; i++) {
         fprintf(stdout, "%s %zu %zu %zu\n", array[i].box_name,

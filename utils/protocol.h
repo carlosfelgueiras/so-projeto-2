@@ -33,11 +33,18 @@
 #define P_UINT64_SIZE 8
 
 typedef struct __attribute__((__packed__)) {
-    char box_name[P_BOX_NAME_SIZE];
+    char box_name[P_BOX_NAME_SIZE+1];
     uint64_t box_size;
     uint64_t n_publishers;
     uint64_t n_subscribers;
 } p_box_info;
+
+typedef struct __attribute__((__packed__)) {
+    char box_name[P_BOX_NAME_SIZE];
+    uint64_t box_size;
+    uint64_t n_publishers;
+    uint64_t n_subscribers;
+} p_box_response;
 
 typedef struct __attribute__((__packed__)) {
     uint8_t protocol_code;

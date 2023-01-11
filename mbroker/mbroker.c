@@ -20,7 +20,7 @@ box_usage_state_t *box_usage;
 pthread_mutex_t box_usage_mutex = PTHREAD_MUTEX_INITIALIZER;
 long unsigned int box_max_number;
 
-int box_alloc(void) {
+int box_alloc() {
     pthread_mutex_lock(&box_usage_mutex);
 
     for (int i = 0; i < box_max_number; i++) {
@@ -43,11 +43,37 @@ void box_delete(int i) {
 }
 
 int box_info_lookup(char *box_name) {
+    char box_name_slash[P_BOX_NAME_SIZE+1];
+    sprintf(box_name_slash,"/%s",box_name);
     for (int i = 0; i < box_max_number; i++) {
-        if (box_usage[i] == TAKEN && !strcmp(box_name, box_info[i].box_name))
+        if (box_usage[i] == TAKEN && !strcmp(box_name_slash, box_info[i].box_name))
             return i;
     }
     return -1;
+}
+
+void send_response_client_manager(int fd, char *message, int choice) {
+    p_response response;
+    strcpy(response.error_message,message);
+    if(message[0]=='\0') {
+        response.return_code=0;
+    } else {
+        response.return_code=-1;
+    }
+
+    if(choice==P_BOX_CREATION_CODE){
+        response.protocol_code=P_BOX_CREATION_CODE;
+    } else if(choice==P_BOX_REMOVAL_CODE){
+        response.protocol_code=P_BOX_REMOVAL_CODE;
+    }
+    if (write(fd, &response, sizeof(response)) !=
+        sizeof(response)) {
+        exit(-1);
+    }
+
+    if (close(fd) < 0) {
+        exit(-1);
+    }
 }
 
 void send_message_to_client(char *message) {
@@ -82,6 +108,9 @@ void manager_box_creation() {
         exit(-1);
     }
 
+    char box_name_slash[P_BOX_NAME_SIZE+1];
+    sprintf(box_name_slash,"/%s",box_name);
+
     char tmp_pipe_name[P_PIPE_NAME_SIZE + 5] = {0};
     sprintf(tmp_pipe_name, "/tmp/%s", pipe);
 
@@ -91,21 +120,31 @@ void manager_box_creation() {
         exit(-1);
     }
 
-    int fd = tfs_open(box_name, TFS_O_CREAT);
-    tfs_close(fd);
+    int box_id=box_alloc();
 
-    p_response response_struct;
+    if(box_id==-1){
+        send_response_client_manager(pipe_fd,"No more space to create new boxes",P_BOX_CREATION_CODE);
+        return;
+    }
 
-    if (write(pipe_fd, &response_struct, P_BOX_CREATION_RESPONSE_SIZE) !=
-        P_BOX_CREATION_RESPONSE_SIZE) {
+    int fd = tfs_open(box_name_slash, TFS_O_CREAT);
+    if(fd==-1){
+        send_response_client_manager(pipe_fd,"No more space to create new boxes",P_BOX_CREATION_CODE);
+        return;
+    }
+    
+    if(tfs_close(fd)==-1){
         exit(-1);
     }
 
-    if (close(pipe_fd) < 0) {
-        exit(-1);
-    }
+    pthread_mutex_lock(&box_info_mutex[box_id]);
+    strcpy(box_info[box_id].box_name,box_name_slash);
+    box_info[box_id].box_size=0;
+    box_info[box_id].n_publishers=0;
+    box_info[box_id].n_subscribers=0;
+    pthread_mutex_unlock(&box_info_mutex[box_id]);
 
-    printf("code: 3 %s %s\n", pipe, box_name);
+    send_response_client_manager(pipe_fd,"",P_BOX_CREATION_CODE);
 }
 
 void manager_box_removal() {
@@ -128,21 +167,18 @@ void manager_box_removal() {
         exit(-1);
     }
 
-    p_response response_struct;
-    response_struct.protocol_code = P_BOX_REMOVAL_RESPONSE_CODE;
-    response_struct.return_code = -1;
-    strcpy(response_struct.error_message, "ola :)");
-
-    if (write(pipe_fd, &response_struct, P_BOX_CREATION_RESPONSE_SIZE) !=
-        P_BOX_CREATION_RESPONSE_SIZE) {
+    int box_id = box_info_lookup(box_name);
+    if(box_id==-1){
+        send_response_client_manager(pipe_fd,"Such box does not exist", P_BOX_REMOVAL_RESPONSE_CODE);
+        return;
+    }
+    if(tfs_unlink(box_info[box_id].box_name)==-1){
         exit(-1);
     }
+    box_delete(box_id);
+    /*TODO??: se subscritores estiverem bloqueados e fecharmos a caixa, e preciso dar broadcast aqui ou deixamos?*/
+    send_response_client_manager(pipe_fd,"",P_BOX_REMOVAL_RESPONSE_CODE);
 
-    if (close(pipe_fd) < 0) {
-        exit(-1);
-    }
-
-    printf("code: 5 %s %s\n", pipe, box_name);
 }
 
 void manager_box_listing() {
@@ -177,13 +213,11 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    tfs_params params = tfs_default_params();
-    params.max_open_files_count = (size_t)max_sessions;
-
-    if (tfs_init(&params) == -1) {
+    if (tfs_init(NULL) == -1) {
         exit(-1);
     }
 
+    tfs_params params = tfs_default_params();
     box_max_number = params.max_inode_count;
 
     box_info = (p_box_info *)malloc(sizeof(p_box_info) * box_max_number);
@@ -201,7 +235,7 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    for (int i = 0; i < params.max_inode_count; i++) {
+    for (int i = 0; i < box_max_number; i++) {
         if (pthread_mutex_init(&box_info_mutex[i], NULL) != 0) {
             exit(-1);
         }

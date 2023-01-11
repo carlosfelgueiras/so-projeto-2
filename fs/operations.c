@@ -350,10 +350,9 @@ int tfs_unlink(char const *target) {
     if (inumber == -1) {
         return -1;
     }
-
-    if (open_file_table_lookup(inumber) != -1) {
-        return -1;
-    }
+    
+    /*We removed the search for the file descriptor of the file in the open file table
+    so that we can unlink(delete) any file/box whenever we want*/
 
     inode_t *file_inode = inode_get(inumber);
     ALWAYS_ASSERT(file_inode != NULL, "tfs_unlink: target inode must exist");
