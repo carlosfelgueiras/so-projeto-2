@@ -54,13 +54,13 @@ void p_build_sub_register(char dest[P_SUB_REGISTER_SIZE],
 void p_build_box_creation(char dest[P_BOX_CREATION_SIZE],
                           char pipe_name[P_PIPE_NAME_SIZE],
                           char box_name[P_BOX_NAME_SIZE]);
-void p_build_box_creation_response(char dest[P_BOX_CREATION_RESPONSE_SIZE],
-                                   p_response response);
+p_response p_build_box_creation_response(int32_t return_code,
+                                         char error_message[P_MESSAGE_SIZE]);
 void p_build_box_removal(char dest[P_BOX_REMOVAL_SIZE],
                          char pipe_name[P_PIPE_NAME_SIZE],
                          char box_name[P_BOX_NAME_SIZE]);
-void p_build_box_removal_response(char dest[P_BOX_REMOVAL_RESPONSE_SIZE],
-                                  p_response response);
+p_response p_build_box_removal_response(int32_t return_code,
+                                        char error_message[P_MESSAGE_SIZE]);
 void p_build_box_listing(char dest[P_BOX_LISTING_SIZE],
                          char pipe_name[P_PIPE_NAME_SIZE]);
 void p_build_box_listing_response(char dest[P_BOX_LISTING_RESPONSE_SIZE],

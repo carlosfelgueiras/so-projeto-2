@@ -109,7 +109,7 @@ void *pcq_dequeue(pc_queue_t *queue) {
         pthread_cond_wait(&queue->pcq_popper_condvar,
                           &queue->pcq_popper_condvar_lock);
 
-    if (pthread_mutex_lock(&queue->pcq_tail_lock) !=0)
+    if (pthread_mutex_lock(&queue->pcq_tail_lock) != 0)
         return NULL;
 
     res = queue->pcq_buffer[queue->pcq_tail];

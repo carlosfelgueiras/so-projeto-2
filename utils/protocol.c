@@ -31,10 +31,15 @@ void p_build_box_creation(char dest[P_BOX_CREATION_SIZE],
     memcpy(dest + P_PIPE_NAME_SIZE + 1, box_name, P_BOX_NAME_SIZE);
 }
 
-void p_build_box_creation_response(char dest[P_BOX_CREATION_RESPONSE_SIZE],
-                                   p_response response) {
-    memset(dest, 0, P_BOX_CREATION_RESPONSE_SIZE);
-    memcpy(dest, &response, sizeof(response));
+p_response p_build_box_creation_response(int32_t return_code,
+                                         char error_message[P_MESSAGE_SIZE]) {
+    p_response response;
+
+    response.protocol_code = P_BOX_CREATION_RESPONSE_CODE;
+    response.return_code = return_code;
+    strcpy(response.error_message, error_message);
+
+    return response;
 }
 
 void p_build_box_removal(char dest[P_BOX_REMOVAL_SIZE],
@@ -47,10 +52,15 @@ void p_build_box_removal(char dest[P_BOX_REMOVAL_SIZE],
     memcpy(dest + P_PIPE_NAME_SIZE + 1, box_name, P_BOX_NAME_SIZE);
 }
 
-void p_build_box_removal_response(char dest[P_BOX_REMOVAL_RESPONSE_SIZE],
-                                  p_response response) {
-    memset(dest, 0, P_BOX_REMOVAL_RESPONSE_SIZE);
-    memcpy(dest, &response, sizeof(response));
+p_response p_build_box_removal_response(int32_t return_code,
+                                        char error_message[P_MESSAGE_SIZE]) {
+    p_response response;
+
+    response.protocol_code = P_BOX_REMOVAL_RESPONSE_CODE;
+    response.return_code = return_code;
+    strcpy(response.error_message, error_message);
+
+    return response;
 }
 
 void p_build_box_listing(char dest[P_BOX_LISTING_SIZE],

@@ -57,30 +57,18 @@ void send_message_to_client(char *message) {
     // Send to message pipe
 }
 
-void publisher() {
-    char pipe[P_PIPE_NAME_SIZE];
-    char box_name[P_BOX_NAME_SIZE];
-    if (read(register_pipe_fd, pipe, P_PIPE_NAME_SIZE) != P_PIPE_NAME_SIZE) {
-        exit(-1);
-    }
+void publisher(char *pipe_name, char *box_name) {
+    (void)pipe_name;
+    (void)box_name;
 
-    if (read(register_pipe_fd, box_name, P_BOX_NAME_SIZE) != P_BOX_NAME_SIZE) {
-        exit(-1);
-    }
-    printf("code: 1 %s %s\n", pipe, box_name);
+    // TODO: implement
 }
 
-void subscriber() {
-    char pipe[P_PIPE_NAME_SIZE];
-    char box_name[P_BOX_NAME_SIZE];
-    if (read(register_pipe_fd, pipe, P_PIPE_NAME_SIZE) != P_PIPE_NAME_SIZE) {
-        exit(-1);
-    }
+void subscriber(char *pipe_name, char *box_name) {
+    (void)pipe_name;
+    (void)box_name;
 
-    if (read(register_pipe_fd, box_name, P_BOX_NAME_SIZE) != P_BOX_NAME_SIZE) {
-        exit(-1);
-    }
-    printf("code: 2 %s %s\n", pipe, box_name);
+    // TODO: implement
 }
 
 void manager_box_creation() {
@@ -103,7 +91,7 @@ void manager_box_creation() {
         exit(-1);
     }
 
-    int fd=tfs_open(box_name, TFS_O_CREAT);
+    int fd = tfs_open(box_name, TFS_O_CREAT);
     tfs_close(fd);
 
     p_response response_struct;
@@ -190,7 +178,7 @@ int main(int argc, char **argv) {
     }
 
     tfs_params params = tfs_default_params();
-    params.max_open_files_count = (size_t) max_sessions;
+    params.max_open_files_count = (size_t)max_sessions;
 
     if (tfs_init(&params) == -1) {
         exit(-1);
@@ -248,12 +236,53 @@ int main(int argc, char **argv) {
         if (read(register_pipe_fd, &code, 1) != 1) {
             code = 0;
         }
+        if (code == P_PUB_REGISTER_CODE) {
+            char pub_pipe_name[P_PIPE_NAME_SIZE];
+            char pub_box_name[P_BOX_NAME_SIZE];
+
+            if (read(register_pipe_fd, pub_pipe_name, P_PIPE_NAME_SIZE) !=
+                P_PIPE_NAME_SIZE) {
+                exit(-1);
+            }
+
+            if (read(register_pipe_fd, pub_box_name, P_BOX_NAME_SIZE) !=
+                P_BOX_NAME_SIZE) {
+                exit(-1);
+            }
+
+            publisher(pub_pipe_name, pub_box_name);
+        } else if (code == P_SUB_REGISTER_CODE) {
+            char sub_pipe_name[P_PIPE_NAME_SIZE];
+            char sub_box_name[P_BOX_NAME_SIZE];
+
+            if (read(register_pipe_fd, sub_pipe_name, P_PIPE_NAME_SIZE) !=
+                P_PIPE_NAME_SIZE) {
+                exit(-1);
+            }
+
+            if (read(register_pipe_fd, sub_box_name, P_BOX_NAME_SIZE) !=
+                P_BOX_NAME_SIZE) {
+                exit(-1);
+            }
+
+            subscriber(sub_pipe_name, sub_box_name);
+        } else if (code == P_BOX_CREATION_CODE) {
+
+        } else if (code == P_BOX_REMOVAL_CODE) {
+        } else if (code == P_BOX_LISTING_CODE) {
+        } else {
+            if (close(register_pipe_fd) < 0) {
+                exit(-1);
+            }
+            if (close(write_fd) < 0) {
+                exit(-1);
+            }
+        }
+
         switch (code) {
         case P_PUB_REGISTER_CODE:
-            publisher();
             break;
         case P_SUB_REGISTER_CODE:
-            subscriber();
             break;
         case P_BOX_CREATION_CODE:
             manager_box_creation();
