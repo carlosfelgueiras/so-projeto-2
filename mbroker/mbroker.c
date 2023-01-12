@@ -1,6 +1,7 @@
 #include "mbroker.h"
 #include "logging.h"
 #include "operations.h"
+#include "producer-consumer.h"
 #include "protocol.h"
 
 #include <errno.h>
@@ -14,6 +15,7 @@
 #include <unistd.h>
 
 int register_pipe_fd;
+pc_queue_t producer_consumer;
 p_box_info *box_info;
 pthread_mutex_t *box_info_mutex;
 box_usage_state_t *box_usage;
@@ -158,40 +160,38 @@ void subscriber(char *pipe_name, char *box_name) {
         return;
     }
 
-    int box_fd = tfs_open(box_info[box_id].box_name,0);
+    int box_fd = tfs_open(box_info[box_id].box_name, 0);
 
     if (box_fd < 0) {
         exit(-1);
     }
 
-    size_t aux=0;
-    char message[P_MESSAGE_SIZE+1]={0};
-    ssize_t bytes_rd=tfs_read(box_fd,message,P_MESSAGE_SIZE);
-    if(bytes_rd<0){
+    size_t aux = 0;
+    char message[P_MESSAGE_SIZE + 1] = {0};
+    ssize_t bytes_rd = tfs_read(box_fd, message, P_MESSAGE_SIZE);
+    if (bytes_rd < 0) {
         exit(-1);
     }
-    while(1){
-        size_t size=strlen(message+aux);
-        if(size==0){
+    while (1) {
+        size_t size = strlen(message + aux);
+        if (size == 0) {
             break;
         }
-        char buffer[P_SUB_MESSAGE_SIZE]={0};
-        buffer[0]=P_SUB_MESSAGE_CODE;
-        strcpy(buffer+1,message+aux);
+        char buffer[P_SUB_MESSAGE_SIZE] = {0};
+        buffer[0] = P_SUB_MESSAGE_CODE;
+        strcpy(buffer + 1, message + aux);
 
-        if (write(pipe_fd, buffer, P_SUB_MESSAGE_SIZE) !=
-            P_SUB_MESSAGE_SIZE) {
+        if (write(pipe_fd, buffer, P_SUB_MESSAGE_SIZE) != P_SUB_MESSAGE_SIZE) {
             exit(-1);
         }
-        aux+=size+1;
+        aux += size + 1;
     }
 
     if (close(pipe_fd) < 0) {
         exit(-1);
     }
 
-    //TODO: IMPLEMENTAR FICAR A ESPERA
-
+    // TODO: IMPLEMENTAR FICAR A ESPERA
 }
 
 void manager_box_creation(char *pipe_name, char *box_name) {
@@ -337,6 +337,34 @@ void manager_box_listing(char *pipe_name) {
     }
 }
 
+void thread_main() {
+    while (1) {
+        char *command = (char *)pcq_dequeue(&producer_consumer);
+
+        switch (command[0]) {
+        case P_PUB_REGISTER_CODE:
+            publisher(command + 1, command + P_PIPE_NAME_SIZE + 1);
+            break;
+        case P_SUB_REGISTER_CODE:
+            subscriber(command + 1, command + P_PIPE_NAME_SIZE + 1);
+            break;
+        case P_BOX_CREATION_CODE:
+            manager_box_creation(command + 1, command + P_PIPE_NAME_SIZE + 1);
+            break;
+        case P_BOX_REMOVAL_CODE:
+            manager_box_removal(command + 1, command + P_PIPE_NAME_SIZE + 1);
+            break;
+        case P_BOX_LISTING_CODE:
+            manager_box_listing(command + 1);
+            break;
+        default:
+            break;
+        }
+
+        break; // PARA JA
+    }
+}
+
 int main(int argc, char **argv) {
     char register_pipe[P_PIPE_NAME_SIZE + 5];
     int max_sessions = 0;
@@ -381,6 +409,10 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
+    if (pcq_create(&producer_consumer, (size_t) (2 * max_sessions)) == -1) {
+        exit(-1);
+    }
+
     for (int i = 0; i < box_max_number; i++) {
         if (pthread_mutex_init(&box_info_mutex[i], NULL) != 0) {
             exit(-1);
@@ -413,78 +445,57 @@ int main(int argc, char **argv) {
 
     while (1) {
         char code;
+        char *command_message;
         if (read(register_pipe_fd, &code, 1) != 1) {
             code = 0;
         }
         if (code == P_PUB_REGISTER_CODE) {
-            char pub_pipe_name[P_PIPE_NAME_SIZE];
-            char pub_box_name[P_BOX_NAME_SIZE];
+            command_message = (char *) malloc(P_PUB_REGISTER_SIZE*sizeof(char));
 
-            if (read(register_pipe_fd, pub_pipe_name, P_PIPE_NAME_SIZE) !=
-                P_PIPE_NAME_SIZE) {
+            command_message[0] = P_PUB_REGISTER_CODE;
+
+            if (read(register_pipe_fd, command_message+1, P_PUB_REGISTER_SIZE-1) !=
+                P_PUB_REGISTER_SIZE-1) {
                 exit(-1);
             }
-
-            if (read(register_pipe_fd, pub_box_name, P_BOX_NAME_SIZE) !=
-                P_BOX_NAME_SIZE) {
-                exit(-1);
-            }
-
-            publisher(pub_pipe_name, pub_box_name);
         } else if (code == P_SUB_REGISTER_CODE) {
-            char sub_pipe_name[P_PIPE_NAME_SIZE];
-            char sub_box_name[P_BOX_NAME_SIZE];
+            command_message = (char *) malloc(P_SUB_REGISTER_SIZE*sizeof(char));
 
-            if (read(register_pipe_fd, sub_pipe_name, P_PIPE_NAME_SIZE) !=
-                P_PIPE_NAME_SIZE) {
+            command_message[0] = P_SUB_REGISTER_CODE;
+
+            if (read(register_pipe_fd, command_message+1, P_SUB_REGISTER_SIZE-1) !=
+                P_SUB_REGISTER_SIZE-1) {
                 exit(-1);
             }
-
-            if (read(register_pipe_fd, sub_box_name, P_BOX_NAME_SIZE) !=
-                P_BOX_NAME_SIZE) {
-                exit(-1);
-            }
-
-            subscriber(sub_pipe_name, sub_box_name);
         } else if (code == P_BOX_CREATION_CODE) {
-            char pipe_name[P_PIPE_NAME_SIZE];
-            char box_name[P_BOX_NAME_SIZE];
-            if (read(register_pipe_fd, pipe_name, P_PIPE_NAME_SIZE) !=
-                P_PIPE_NAME_SIZE) {
+            command_message = (char *) malloc(P_BOX_CREATION_SIZE*sizeof(char));
+
+            command_message[0] = P_BOX_CREATION_CODE;
+
+            if (read(register_pipe_fd, command_message+1, P_BOX_CREATION_SIZE-1) !=
+                P_BOX_CREATION_SIZE-1) {
                 exit(-1);
             }
-
-            if (read(register_pipe_fd, box_name, P_BOX_NAME_SIZE) !=
-                P_BOX_NAME_SIZE) {
-                exit(-1);
-            }
-
-            manager_box_creation(pipe_name, box_name);
         } else if (code == P_BOX_REMOVAL_CODE) {
-            char pipe_name[P_PIPE_NAME_SIZE];
-            char box_name[P_BOX_NAME_SIZE];
+            command_message = (char *) malloc(P_BOX_REMOVAL_SIZE*sizeof(char));
 
-            if (read(register_pipe_fd, pipe_name, P_PIPE_NAME_SIZE) !=
-                P_PIPE_NAME_SIZE) {
+            command_message[0] = P_BOX_REMOVAL_CODE;
+
+            if (read(register_pipe_fd, command_message+1, P_BOX_REMOVAL_SIZE-1) !=
+                P_BOX_REMOVAL_SIZE-1) {
                 exit(-1);
             }
-
-            if (read(register_pipe_fd, box_name, P_BOX_NAME_SIZE) !=
-                P_BOX_NAME_SIZE) {
-                exit(-1);
-            }
-
-            manager_box_removal(pipe_name, box_name);
         } else if (code == P_BOX_LISTING_CODE) {
-            char pipe_name[P_PIPE_NAME_SIZE];
+            command_message = (char *) malloc(P_BOX_LISTING_SIZE*sizeof(char));
 
-            if (read(register_pipe_fd, pipe_name, P_PIPE_NAME_SIZE) !=
-                P_PIPE_NAME_SIZE) {
+            command_message[0] = P_BOX_LISTING_CODE;
+
+            if (read(register_pipe_fd, command_message+1, P_BOX_LISTING_SIZE-1) !=
+                P_BOX_LISTING_SIZE-1) {
                 exit(-1);
             }
-
-            manager_box_listing(pipe_name);
         } else {
+            command_message = NULL;
             if (close(register_pipe_fd) < 0) {
                 exit(-1);
             }
@@ -492,5 +503,8 @@ int main(int argc, char **argv) {
                 exit(-1);
             }
         }
+        
+        pcq_enqueue(&producer_consumer, command_message);
+        thread_main();
     }
 }

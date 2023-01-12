@@ -138,7 +138,12 @@ int main(int argc, char **argv) {
         int code;
         int msg_count;
         // if the pipe is closed exits the program
-        if (read(pipe_fd, &code, 1) < 1) {
+        ssize_t bytes_read = read(pipe_fd, &code, 1);
+        if (bytes_read != 1) {
+            if (bytes_read == 0) {
+                raise(SIGINT);
+            }
+
             fprintf(stderr, "Unable to read from the box\n");
             exit(-1);
         }
@@ -149,7 +154,7 @@ int main(int argc, char **argv) {
         }
 
         // reads the message
-        ssize_t bytes_read = read(pipe_fd, message, P_MESSAGE_SIZE);
+        bytes_read = read(pipe_fd, message, P_MESSAGE_SIZE);
         if (bytes_read != P_MESSAGE_SIZE) {
             if (bytes_read == 0) {
                 raise(SIGINT);
