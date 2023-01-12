@@ -409,7 +409,7 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    if (pcq_create(&producer_consumer, (size_t) (2 * max_sessions)) == -1) {
+    if (pcq_create(&producer_consumer, (size_t)(2 * max_sessions)) == -1) {
         exit(-1);
     }
 
@@ -450,48 +450,51 @@ int main(int argc, char **argv) {
             code = 0;
         }
         if (code == P_PUB_REGISTER_CODE) {
-            command_message = (char *) malloc(P_PUB_REGISTER_SIZE*sizeof(char));
+            command_message =
+                (char *)malloc(P_PUB_REGISTER_SIZE * sizeof(char));
 
             command_message[0] = P_PUB_REGISTER_CODE;
 
-            if (read(register_pipe_fd, command_message+1, P_PUB_REGISTER_SIZE-1) !=
-                P_PUB_REGISTER_SIZE-1) {
+            if (read(register_pipe_fd, command_message + 1,
+                     P_PUB_REGISTER_SIZE - 1) != P_PUB_REGISTER_SIZE - 1) {
                 exit(-1);
             }
         } else if (code == P_SUB_REGISTER_CODE) {
-            command_message = (char *) malloc(P_SUB_REGISTER_SIZE*sizeof(char));
+            command_message =
+                (char *)malloc(P_SUB_REGISTER_SIZE * sizeof(char));
 
             command_message[0] = P_SUB_REGISTER_CODE;
 
-            if (read(register_pipe_fd, command_message+1, P_SUB_REGISTER_SIZE-1) !=
-                P_SUB_REGISTER_SIZE-1) {
+            if (read(register_pipe_fd, command_message + 1,
+                     P_SUB_REGISTER_SIZE - 1) != P_SUB_REGISTER_SIZE - 1) {
                 exit(-1);
             }
         } else if (code == P_BOX_CREATION_CODE) {
-            command_message = (char *) malloc(P_BOX_CREATION_SIZE*sizeof(char));
+            command_message =
+                (char *)malloc(P_BOX_CREATION_SIZE * sizeof(char));
 
             command_message[0] = P_BOX_CREATION_CODE;
 
-            if (read(register_pipe_fd, command_message+1, P_BOX_CREATION_SIZE-1) !=
-                P_BOX_CREATION_SIZE-1) {
+            if (read(register_pipe_fd, command_message + 1,
+                     P_BOX_CREATION_SIZE - 1) != P_BOX_CREATION_SIZE - 1) {
                 exit(-1);
             }
         } else if (code == P_BOX_REMOVAL_CODE) {
-            command_message = (char *) malloc(P_BOX_REMOVAL_SIZE*sizeof(char));
+            command_message = (char *)malloc(P_BOX_REMOVAL_SIZE * sizeof(char));
 
             command_message[0] = P_BOX_REMOVAL_CODE;
 
-            if (read(register_pipe_fd, command_message+1, P_BOX_REMOVAL_SIZE-1) !=
-                P_BOX_REMOVAL_SIZE-1) {
+            if (read(register_pipe_fd, command_message + 1,
+                     P_BOX_REMOVAL_SIZE - 1) != P_BOX_REMOVAL_SIZE - 1) {
                 exit(-1);
             }
         } else if (code == P_BOX_LISTING_CODE) {
-            command_message = (char *) malloc(P_BOX_LISTING_SIZE*sizeof(char));
+            command_message = (char *)malloc(P_BOX_LISTING_SIZE * sizeof(char));
 
             command_message[0] = P_BOX_LISTING_CODE;
 
-            if (read(register_pipe_fd, command_message+1, P_BOX_LISTING_SIZE-1) !=
-                P_BOX_LISTING_SIZE-1) {
+            if (read(register_pipe_fd, command_message + 1,
+                     P_BOX_LISTING_SIZE - 1) != P_BOX_LISTING_SIZE - 1) {
                 exit(-1);
             }
         } else {
@@ -503,7 +506,7 @@ int main(int argc, char **argv) {
                 exit(-1);
             }
         }
-        
+
         pcq_enqueue(&producer_consumer, command_message);
         thread_main();
     }
