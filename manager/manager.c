@@ -146,20 +146,16 @@ void request_box_list(char *pipe_name) {
     unsigned int size = 0;
     unsigned int cap = 1;
 
-    char buffer[P_BOX_LISTING_RESPONSE_SIZE];
-
+    p_box_response response;
     while (1) {
-        if (read(pipe_fd, buffer, P_BOX_LISTING_RESPONSE_CODE) !=
-            P_BOX_LISTING_RESPONSE_SIZE) {
+        if (read(pipe_fd, &response, sizeof(p_box_response)) !=
+            sizeof(p_box_response)) {
             exit(-1);
         }
 
-        if (buffer[0] != P_BOX_LISTING_RESPONSE_CODE) {
+        if (response.protocol_code != P_BOX_LISTING_RESPONSE_CODE) {
             exit(-1);
         }
-
-        p_box_response box;
-        memcpy(&box, buffer + 2, sizeof(p_box_response));
 
         if (size >= cap) {
             cap *= 2;
@@ -167,9 +163,9 @@ void request_box_list(char *pipe_name) {
                 (p_box_response *)realloc(array, cap * sizeof(p_box_response));
         }
 
-        array[size++] = box;
+        array[size++] = response;
 
-        if (buffer[1] == 1)
+        if (response.last == 1)
             break;
     }
 
