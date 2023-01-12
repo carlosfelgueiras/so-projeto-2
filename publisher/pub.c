@@ -150,6 +150,8 @@ int main(int argc, char **argv) {
         if (fgets(message, P_MESSAGE_SIZE, stdin) == NULL) {
             break;
         }
+        size_t new_line = strlen(message);
+        message[new_line - 1] = '\0';
         send_message_to_mbroker(message);
     }
 

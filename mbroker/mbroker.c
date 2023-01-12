@@ -85,7 +85,7 @@ void publisher(char *pipe_name, char *box_name) {
     char tmp_pipe_name[P_PIPE_NAME_SIZE + 5] = {0};
     sprintf(tmp_pipe_name, "/tmp/%s", pipe_name);
 
-    int pipe_fd = open(tmp_pipe_name, O_WRONLY);
+    int pipe_fd = open(tmp_pipe_name, O_RDONLY);
 
     if (pipe_fd < 0) {
         exit(-1);
@@ -93,7 +93,7 @@ void publisher(char *pipe_name, char *box_name) {
 
     int box_id = box_info_lookup(box_name);
 
-    if (box_id < 0 || box_info[box_id].n_publishers >= 0) {
+    if (box_id < 0 || box_info[box_id].n_publishers >= 1) {
         if (close(pipe_fd) < 0) {
             exit(-1);
         }
@@ -111,7 +111,7 @@ void publisher(char *pipe_name, char *box_name) {
     while (1) {
         ssize_t code = read(pipe_fd, &buffer, P_PUB_MESSAGE_SIZE);
         if (code != P_PUB_MESSAGE_SIZE) {
-            if (code == EOF) {
+            if (code == 0) {
                 if (close(pipe_fd) < 0) {
                     exit(-1);
                 }
