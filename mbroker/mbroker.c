@@ -227,6 +227,10 @@ void manager_box_listing(char *pipe_name) {
                 exit(-1);
             }
         }
+
+        if (i == last) {
+            break;
+        }
     }
 
     if (close(pipe_fd) < 0) {

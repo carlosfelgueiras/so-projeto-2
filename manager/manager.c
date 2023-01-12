@@ -13,7 +13,7 @@
 char tmp_pipe_name[P_PIPE_NAME_SIZE + 5]; // Full name of the pipe
 
 int compare_box(const void *a, const void *b) {
-    return strcmp(((p_box_info *)a)->box_name, ((p_box_info *)b)->box_name);
+    return strcmp(((p_box_response *)a)->box_name, ((p_box_response *)b)->box_name);
 }
 
 int open_register_pipe(char *register_pipename) {
@@ -126,12 +126,12 @@ void request_box_removal(char *register_pipe_name, char *pipe_name,
     close_pipe(pipe_fd);
 }
 
-void request_box_list(char *pipe_name) {
+void request_box_list(char *pipe_name, char *register_pipe_name) {
     char register_code[P_BOX_LISTING_SIZE];
 
     p_build_box_listing(register_code, pipe_name);
 
-    int register_pipe_fd = open_register_pipe(pipe_name);
+    int register_pipe_fd = open_register_pipe(register_pipe_name);
 
     if (write(register_pipe_fd, register_code, P_BOX_LISTING_SIZE) !=
         P_BOX_LISTING_SIZE) {
@@ -234,7 +234,7 @@ int main(int argc, char **argv) {
     switch (argc) {
     case 4:
         if (!strcmp(argv[3], "list")) {
-            request_box_list(argv[1]);
+            request_box_list(pipe_name, argv[1]);
         } else {
             print_usage();
             exit(-1);
