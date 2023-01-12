@@ -13,7 +13,8 @@
 char tmp_pipe_name[P_PIPE_NAME_SIZE + 5]; // Full name of the pipe
 
 int compare_box(const void *a, const void *b) {
-    return strcmp(((p_box_response *)a)->box_name, ((p_box_response *)b)->box_name);
+    return strcmp(((p_box_response *)a)->box_name,
+                  ((p_box_response *)b)->box_name);
 }
 
 int open_register_pipe(char *register_pipename) {

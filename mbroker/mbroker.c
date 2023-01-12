@@ -118,7 +118,7 @@ void publisher(char *pipe_name, char *box_name) {
 
                 return;
             }
-            
+
             exit(-1);
         }
 
@@ -128,7 +128,7 @@ void publisher(char *pipe_name, char *box_name) {
 
         size_t size = strlen(buffer + 1) + 1; // To include a /0d
 
-        size_t bytes_writen = (size_t) tfs_write(box_fd, buffer+1, size);
+        size_t bytes_writen = (size_t)tfs_write(box_fd, buffer + 1, size);
 
         pthread_mutex_lock(&box_info_mutex[box_id]);
         box_info[box_id].box_size += bytes_writen;
