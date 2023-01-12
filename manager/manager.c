@@ -68,8 +68,7 @@ void request_box_creation(char *register_pipe_name, char *pipe_name,
 
     p_response response;
 
-    if (read(pipe_fd, &response, sizeof(p_response)) !=
-        sizeof(p_response)) {
+    if (read(pipe_fd, &response, sizeof(p_response)) != sizeof(p_response)) {
         exit(-1);
     }
 

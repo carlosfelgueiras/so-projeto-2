@@ -109,23 +109,25 @@ void manager_box_creation(char *pipe_name, char *box_name) {
     }
 
     if (box_info_lookup(box_name) != -1) {
-        send_response_client_manager(
-            pipe_fd, "Box already exits", P_BOX_CREATION_RESPONSE_CODE);
+        send_response_client_manager(pipe_fd, "Box already exits",
+                                     P_BOX_CREATION_RESPONSE_CODE);
         return;
     }
 
     int box_id = box_alloc();
 
     if (box_id == -1) {
-        send_response_client_manager(
-            pipe_fd, "No more space to create new boxes", P_BOX_CREATION_RESPONSE_CODE);
+        send_response_client_manager(pipe_fd,
+                                     "No more space to create new boxes",
+                                     P_BOX_CREATION_RESPONSE_CODE);
         return;
     }
 
     int fd = tfs_open(box_name_slash, TFS_O_CREAT);
     if (fd == -1) {
-        send_response_client_manager(
-            pipe_fd, "No more space to create new boxes", P_BOX_CREATION_RESPONSE_CODE);
+        send_response_client_manager(pipe_fd,
+                                     "No more space to create new boxes",
+                                     P_BOX_CREATION_RESPONSE_CODE);
         return;
     }
 
