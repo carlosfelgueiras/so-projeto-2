@@ -139,10 +139,59 @@ void publisher(char *pipe_name, char *box_name) {
 }
 
 void subscriber(char *pipe_name, char *box_name) {
-    (void)pipe_name;
-    (void)box_name;
+    char tmp_pipe_name[P_PIPE_NAME_SIZE + 5] = {0};
+    sprintf(tmp_pipe_name, "/tmp/%s", pipe_name);
 
-    // TODO: implement
+    int pipe_fd = open(tmp_pipe_name, O_WRONLY);
+
+    if (pipe_fd < 0) {
+        exit(-1);
+    }
+
+    int box_id = box_info_lookup(box_name);
+
+    if (box_id < 0) {
+        if (close(pipe_fd) < 0) {
+            exit(-1);
+        }
+
+        return;
+    }
+
+    int box_fd = tfs_open(box_info[box_id].box_name,0);
+
+    if (box_fd < 0) {
+        exit(-1);
+    }
+
+    size_t aux=0;
+    char message[P_MESSAGE_SIZE+1]={0};
+    ssize_t bytes_rd=tfs_read(box_fd,message,P_MESSAGE_SIZE);
+    if(bytes_rd<0){
+        exit(-1);
+    }
+    while(1){
+        size_t size=strlen(message+aux);
+        if(size==0){
+            break;
+        }
+        char buffer[P_SUB_MESSAGE_SIZE]={0};
+        buffer[0]=P_SUB_MESSAGE_CODE;
+        strcpy(buffer+1,message+aux);
+
+        if (write(pipe_fd, buffer, P_SUB_MESSAGE_SIZE) !=
+            P_SUB_MESSAGE_SIZE) {
+            exit(-1);
+        }
+        aux+=size+1;
+    }
+
+    if (close(pipe_fd) < 0) {
+        exit(-1);
+    }
+
+    //TODO: IMPLEMENTAR FICAR A ESPERA
+
 }
 
 void manager_box_creation(char *pipe_name, char *box_name) {
