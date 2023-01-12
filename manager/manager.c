@@ -68,8 +68,8 @@ void request_box_creation(char *register_pipe_name, char *pipe_name,
 
     p_response response;
 
-    if (read(pipe_fd, &response, P_BOX_CREATION_RESPONSE_SIZE) !=
-        P_BOX_CREATION_RESPONSE_SIZE) {
+    if (read(pipe_fd, &response, sizeof(p_response)) !=
+        sizeof(p_response)) {
         exit(-1);
     }
 
@@ -134,8 +134,8 @@ void request_box_list(char *pipe_name) {
 
     int register_pipe_fd = open_register_pipe(pipe_name);
 
-    if (write(register_pipe_fd, register_code, P_BOX_CREATION_SIZE) !=
-        P_BOX_CREATION_SIZE) {
+    if (write(register_pipe_fd, register_code, P_BOX_LISTING_SIZE) !=
+        P_BOX_LISTING_SIZE) {
         exit(-1);
     }
 
@@ -164,7 +164,8 @@ void request_box_list(char *pipe_name) {
 
         if (size >= cap) {
             cap *= 2;
-            array = (p_box_response *)realloc(array, cap * sizeof(p_box_response));
+            array =
+                (p_box_response *)realloc(array, cap * sizeof(p_box_response));
         }
 
         array[size++] = box;

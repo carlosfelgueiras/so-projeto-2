@@ -33,13 +33,15 @@
 #define P_UINT64_SIZE 8
 
 typedef struct __attribute__((__packed__)) {
-    char box_name[P_BOX_NAME_SIZE+1];
+    char box_name[P_BOX_NAME_SIZE + 1];
     uint64_t box_size;
     uint64_t n_publishers;
     uint64_t n_subscribers;
 } p_box_info;
 
 typedef struct __attribute__((__packed__)) {
+    uint8_t protocol_code;
+    uint8_t last;
     char box_name[P_BOX_NAME_SIZE];
     uint64_t box_size;
     uint64_t n_publishers;
@@ -70,5 +72,4 @@ p_response p_build_box_removal_response(int32_t return_code,
                                         char error_message[P_MESSAGE_SIZE]);
 void p_build_box_listing(char dest[P_BOX_LISTING_SIZE],
                          char pipe_name[P_PIPE_NAME_SIZE]);
-void p_build_box_listing_response(char dest[P_BOX_LISTING_RESPONSE_SIZE],
-                                  uint8_t last, p_box_info info);
+p_box_response p_build_box_listing_response(uint8_t last, p_box_info info);

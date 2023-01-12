@@ -43,31 +43,29 @@ void box_delete(int i) {
 }
 
 int box_info_lookup(char *box_name) {
-    char box_name_slash[P_BOX_NAME_SIZE+1];
-    sprintf(box_name_slash,"/%s",box_name);
+    char box_name_slash[P_BOX_NAME_SIZE + 1];
+    sprintf(box_name_slash, "/%s", box_name);
     for (int i = 0; i < box_max_number; i++) {
-        if (box_usage[i] == TAKEN && !strcmp(box_name_slash, box_info[i].box_name))
+        if (box_usage[i] == TAKEN &&
+            !strcmp(box_name_slash, box_info[i].box_name))
             return i;
     }
     return -1;
 }
 
-void send_response_client_manager(int fd, char *message, int choice) {
+void send_response_client_manager(int fd, char *message, u_int8_t choice) {
     p_response response;
-    strcpy(response.error_message,message);
-    if(message[0]=='\0') {
-        response.return_code=0;
+    strcpy(response.error_message, message);
+
+    if (strlen(message) == 0) {
+        response.return_code = 0;
     } else {
-        response.return_code=-1;
+        response.return_code = -1;
     }
 
-    if(choice==P_BOX_CREATION_CODE){
-        response.protocol_code=P_BOX_CREATION_CODE;
-    } else if(choice==P_BOX_REMOVAL_CODE){
-        response.protocol_code=P_BOX_REMOVAL_CODE;
-    }
-    if (write(fd, &response, sizeof(response)) !=
-        sizeof(response)) {
+    response.protocol_code = choice;
+
+    if (write(fd, &response, sizeof(response)) != sizeof(response)) {
         exit(-1);
     }
 
@@ -97,22 +95,12 @@ void subscriber(char *pipe_name, char *box_name) {
     // TODO: implement
 }
 
-void manager_box_creation() {
-    char pipe[P_PIPE_NAME_SIZE];
-    char box_name[P_BOX_NAME_SIZE];
-    if (read(register_pipe_fd, pipe, P_PIPE_NAME_SIZE) != P_PIPE_NAME_SIZE) {
-        exit(-1);
-    }
-
-    if (read(register_pipe_fd, box_name, P_BOX_NAME_SIZE) != P_BOX_NAME_SIZE) {
-        exit(-1);
-    }
-
-    char box_name_slash[P_BOX_NAME_SIZE+1];
-    sprintf(box_name_slash,"/%s",box_name);
+void manager_box_creation(char *pipe_name, char *box_name) {
+    char box_name_slash[P_BOX_NAME_SIZE + 1];
+    sprintf(box_name_slash, "/%s", box_name);
 
     char tmp_pipe_name[P_PIPE_NAME_SIZE + 5] = {0};
-    sprintf(tmp_pipe_name, "/tmp/%s", pipe);
+    sprintf(tmp_pipe_name, "/tmp/%s", pipe_name);
 
     int pipe_fd = open(tmp_pipe_name, O_WRONLY);
 
@@ -120,46 +108,44 @@ void manager_box_creation() {
         exit(-1);
     }
 
-    int box_id=box_alloc();
+    if (box_info_lookup(box_name) != -1) {
+        send_response_client_manager(
+            pipe_fd, "Box already exits", P_BOX_CREATION_RESPONSE_CODE);
+        return;
+    }
 
-    if(box_id==-1){
-        send_response_client_manager(pipe_fd,"No more space to create new boxes",P_BOX_CREATION_CODE);
+    int box_id = box_alloc();
+
+    if (box_id == -1) {
+        send_response_client_manager(
+            pipe_fd, "No more space to create new boxes", P_BOX_CREATION_RESPONSE_CODE);
         return;
     }
 
     int fd = tfs_open(box_name_slash, TFS_O_CREAT);
-    if(fd==-1){
-        send_response_client_manager(pipe_fd,"No more space to create new boxes",P_BOX_CREATION_CODE);
+    if (fd == -1) {
+        send_response_client_manager(
+            pipe_fd, "No more space to create new boxes", P_BOX_CREATION_RESPONSE_CODE);
         return;
     }
-    
-    if(tfs_close(fd)==-1){
+
+    if (tfs_close(fd) == -1) {
         exit(-1);
     }
 
     pthread_mutex_lock(&box_info_mutex[box_id]);
-    strcpy(box_info[box_id].box_name,box_name_slash);
-    box_info[box_id].box_size=0;
-    box_info[box_id].n_publishers=0;
-    box_info[box_id].n_subscribers=0;
+    strcpy(box_info[box_id].box_name, box_name_slash);
+    box_info[box_id].box_size = 0;
+    box_info[box_id].n_publishers = 0;
+    box_info[box_id].n_subscribers = 0;
     pthread_mutex_unlock(&box_info_mutex[box_id]);
 
-    send_response_client_manager(pipe_fd,"",P_BOX_CREATION_CODE);
+    send_response_client_manager(pipe_fd, "", P_BOX_CREATION_RESPONSE_CODE);
 }
 
-void manager_box_removal() {
-    char pipe[P_PIPE_NAME_SIZE];
-    char box_name[P_BOX_NAME_SIZE];
-    if (read(register_pipe_fd, pipe, P_PIPE_NAME_SIZE) != P_PIPE_NAME_SIZE) {
-        exit(-1);
-    }
-
-    if (read(register_pipe_fd, box_name, P_BOX_NAME_SIZE) != P_BOX_NAME_SIZE) {
-        exit(-1);
-    }
-
-    char tmp_pipe_name[P_PIPE_NAME_SIZE + 5] = {0};
-    sprintf(tmp_pipe_name, "/tmp/%s", pipe);
+void manager_box_removal(char *pipe_name, char *box_name) {
+    char tmp_pipe_name[P_PIPE_NAME_SIZE + 5];
+    sprintf(tmp_pipe_name, "/tmp/%s", pipe_name);
 
     int pipe_fd = open(tmp_pipe_name, O_WRONLY);
 
@@ -168,27 +154,82 @@ void manager_box_removal() {
     }
 
     int box_id = box_info_lookup(box_name);
-    if(box_id==-1){
-        send_response_client_manager(pipe_fd,"Such box does not exist", P_BOX_REMOVAL_RESPONSE_CODE);
+    if (box_id == -1) {
+        send_response_client_manager(pipe_fd, "Such box does not exist",
+                                     P_BOX_REMOVAL_RESPONSE_CODE);
         return;
     }
-    if(tfs_unlink(box_info[box_id].box_name)==-1){
+
+    if (tfs_unlink(box_info[box_id].box_name) == -1) {
         exit(-1);
     }
-    box_delete(box_id);
-    /*TODO??: se subscritores estiverem bloqueados e fecharmos a caixa, e preciso dar broadcast aqui ou deixamos?*/
-    send_response_client_manager(pipe_fd,"",P_BOX_REMOVAL_RESPONSE_CODE);
 
+    box_delete(box_id);
+    /*TODO??: se subscritores estiverem bloqueados e fecharmos a caixa, e
+     * preciso dar broadcast aqui ou deixamos?*/
+    send_response_client_manager(pipe_fd, "", P_BOX_REMOVAL_RESPONSE_CODE);
 }
 
-void manager_box_listing() {
-    char pipe[P_PIPE_NAME_SIZE];
+void manager_box_listing(char *pipe_name) {
+    char tmp_pipe_name[P_PIPE_NAME_SIZE + 5];
+    sprintf(tmp_pipe_name, "/tmp/%s", pipe_name);
 
-    if (read(register_pipe_fd, pipe, P_PIPE_NAME_SIZE) != P_PIPE_NAME_SIZE) {
+    int pipe_fd = open(tmp_pipe_name, O_WRONLY);
+
+    if (pipe_fd < 0) {
         exit(-1);
     }
 
-    printf("code: 7 %s\n", pipe);
+    int last = -1;
+    for (int i = 0; i < box_max_number; i++) {
+        if (box_usage[i] == TAKEN) {
+            last = i;
+        }
+    }
+
+    if (last == -1) {
+        p_box_response response;
+
+        response.protocol_code = P_BOX_LISTING_RESPONSE_CODE;
+        response.last = 1;
+        memset(response.box_name, 0, P_BOX_NAME_SIZE);
+        response.box_size = 0;
+        response.n_publishers = 0;
+        response.n_subscribers = 0;
+
+        if (write(pipe_fd, &response, sizeof(p_box_response)) !=
+            sizeof(p_box_response)) {
+            exit(-1);
+        }
+
+        if (close(pipe_fd) < 0) {
+            exit(-1);
+        }
+
+        return;
+    }
+
+    for (int i = 0; i < box_max_number; i++) {
+        // Lock???
+        uint8_t last_info = 0;
+
+        if (i == last) {
+            last_info = 1;
+        }
+
+        if (box_usage[i] == TAKEN) {
+            p_box_response response =
+                p_build_box_listing_response(last_info, box_info[i]);
+            if (write(pipe_fd, &response, sizeof(p_box_response)) !=
+                sizeof(p_box_response)) {
+                exit(-1);
+            }
+        }
+    }
+
+    if (close(pipe_fd) < 0) {
+        exit(-1);
+    }
 }
 
 int main(int argc, char **argv) {
@@ -301,9 +342,43 @@ int main(int argc, char **argv) {
 
             subscriber(sub_pipe_name, sub_box_name);
         } else if (code == P_BOX_CREATION_CODE) {
+            char pipe_name[P_PIPE_NAME_SIZE];
+            char box_name[P_BOX_NAME_SIZE];
+            if (read(register_pipe_fd, pipe_name, P_PIPE_NAME_SIZE) !=
+                P_PIPE_NAME_SIZE) {
+                exit(-1);
+            }
 
+            if (read(register_pipe_fd, box_name, P_BOX_NAME_SIZE) !=
+                P_BOX_NAME_SIZE) {
+                exit(-1);
+            }
+
+            manager_box_creation(pipe_name, box_name);
         } else if (code == P_BOX_REMOVAL_CODE) {
+            char pipe_name[P_PIPE_NAME_SIZE];
+            char box_name[P_BOX_NAME_SIZE];
+
+            if (read(register_pipe_fd, pipe_name, P_PIPE_NAME_SIZE) !=
+                P_PIPE_NAME_SIZE) {
+                exit(-1);
+            }
+
+            if (read(register_pipe_fd, box_name, P_BOX_NAME_SIZE) !=
+                P_BOX_NAME_SIZE) {
+                exit(-1);
+            }
+
+            manager_box_removal(pipe_name, box_name);
         } else if (code == P_BOX_LISTING_CODE) {
+            char pipe_name[P_PIPE_NAME_SIZE];
+
+            if (read(register_pipe_fd, pipe_name, P_PIPE_NAME_SIZE) !=
+                P_PIPE_NAME_SIZE) {
+                exit(-1);
+            }
+
+            manager_box_listing(pipe_name);
         } else {
             if (close(register_pipe_fd) < 0) {
                 exit(-1);
@@ -311,32 +386,6 @@ int main(int argc, char **argv) {
             if (close(write_fd) < 0) {
                 exit(-1);
             }
-        }
-
-        switch (code) {
-        case P_PUB_REGISTER_CODE:
-            break;
-        case P_SUB_REGISTER_CODE:
-            break;
-        case P_BOX_CREATION_CODE:
-            manager_box_creation();
-            break;
-        case P_BOX_REMOVAL_CODE:
-            manager_box_removal();
-            break;
-        case P_BOX_LISTING_CODE:
-            manager_box_listing();
-            break;
-        case 0:
-            break;
-        default:
-            if (close(register_pipe_fd) < 0) {
-                exit(-1);
-            }
-            if (close(write_fd) < 0) {
-                exit(-1);
-            }
-            break;
         }
     }
 }

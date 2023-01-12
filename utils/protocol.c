@@ -71,11 +71,15 @@ void p_build_box_listing(char dest[P_BOX_LISTING_SIZE],
     memcpy(dest + 1, pipe_name, P_PIPE_NAME_SIZE);
 }
 
-void p_build_box_listing_response(char dest[P_BOX_LISTING_RESPONSE_SIZE],
-                                  uint8_t last, p_box_info info) {
-    memset(dest, 0, P_BOX_LISTING_RESPONSE_SIZE);
+p_box_response p_build_box_listing_response(uint8_t last, p_box_info info) {
+    p_box_response response;
 
-    dest[0] = P_BOX_LISTING_RESPONSE_CODE;
-    dest[1] = (char)last;
-    memcpy(dest + 2, &info, sizeof(p_box_info));
+    response.protocol_code = P_BOX_LISTING_RESPONSE_CODE;
+    response.last = last;
+    strcpy(response.box_name, info.box_name + 1);
+    response.box_size = info.box_size;
+    response.n_publishers = info.n_publishers;
+    response.n_subscribers = info.n_subscribers;
+
+    return response;
 }
