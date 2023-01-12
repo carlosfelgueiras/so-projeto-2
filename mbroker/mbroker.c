@@ -82,10 +82,60 @@ void send_message_to_client(char *message) {
 }
 
 void publisher(char *pipe_name, char *box_name) {
-    (void)pipe_name;
-    (void)box_name;
+    char tmp_pipe_name[P_PIPE_NAME_SIZE + 5] = {0};
+    sprintf(tmp_pipe_name, "/tmp/%s", pipe_name);
 
-    // TODO: implement
+    int pipe_fd = open(tmp_pipe_name, O_WRONLY);
+
+    if (pipe_fd < 0) {
+        exit(-1);
+    }
+
+    int box_id = box_info_lookup(box_name);
+
+    if (box_id < 0 || box_info[box_id].n_publishers >= 0) {
+        if (close(pipe_fd) < 0) {
+            exit(-1);
+        }
+
+        return;
+    }
+
+    int box_fd = tfs_open(box_info[box_id].box_name, O_APPEND);
+
+    if (box_fd < 0) {
+        exit(-1);
+    }
+
+    char buffer[P_PUB_MESSAGE_SIZE];
+    while (1) {
+        ssize_t code = read(pipe_fd, &buffer, P_PUB_MESSAGE_SIZE);
+        if (code != P_PUB_MESSAGE_SIZE) {
+            if (code == EOF) {
+                if (close(pipe_fd) < 0) {
+                    exit(-1);
+                }
+
+                return;
+            }
+            
+            exit(-1);
+        }
+
+        if (buffer[0] != P_PUB_MESSAGE_CODE) {
+            exit(-1);
+        }
+
+        size_t size = strlen(buffer + 1) + 1; // To include a /0d
+
+        size_t bytes_writen = (size_t) tfs_write(box_fd, buffer+1, size);
+
+        pthread_mutex_lock(&box_info_mutex[box_id]);
+        box_info[box_id].box_size += bytes_writen;
+        pthread_mutex_unlock(&box_info_mutex[box_id]);
+
+        // DAR SIGNAL
+    }
 }
 
 void subscriber(char *pipe_name, char *box_name) {
