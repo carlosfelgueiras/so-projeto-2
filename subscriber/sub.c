@@ -63,11 +63,10 @@ static void signal_handler(int sig) {
     case SIGINT:
 
         bytes_wr = write(
-            1, "pipes closed and program terminated\nnumber of messages: ", 37);
+            1, "pipes closed and program terminated\nnumber of messages: ", 57);
         bytes_wr = write(1, number_of_messages, 20);
         bytes_wr = write(1, "\n", 1);
-        signal(sig, SIG_DFL);
-        raise(sig);
+        _exit(EXIT_SUCCESS);
         break;
     default:
         break;
@@ -139,7 +138,8 @@ int main(int argc, char **argv) {
         int code;
         int msg_count;
         // if the pipe is closed exits the program
-        if (read(pipe_fd, &code, 1) < 0) {
+        if (read(pipe_fd, &code, 1) < 1) {
+            fprintf(stderr, "Unable to read from the box\n");
             exit(-1);
         }
 
@@ -149,7 +149,13 @@ int main(int argc, char **argv) {
         }
 
         // reads the message
-        if (read(pipe_fd, message, P_MESSAGE_SIZE) != P_MESSAGE_SIZE) {
+        ssize_t bytes_read = read(pipe_fd, message, P_MESSAGE_SIZE);
+        if (bytes_read != P_MESSAGE_SIZE) {
+            if (bytes_read == 0) {
+                raise(SIGINT);
+            }
+
+            fprintf(stderr, "Unable to read from the box\n");
             exit(-1);
         }
 
