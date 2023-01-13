@@ -337,7 +337,8 @@ void manager_box_listing(char *pipe_name) {
     }
 }
 
-void thread_main() {
+void* thread_main(void* i) {
+    (void) i;
     while (1) {
         char *command = (char *)pcq_dequeue(&producer_consumer);
 
@@ -363,6 +364,7 @@ void thread_main() {
 
         break; // PARA JA
     }
+    return NULL;
 }
 
 int main(int argc, char **argv) {
@@ -443,6 +445,14 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
+    pthread_t threads[max_sessions];
+
+    for(int i=0;i<max_sessions;i++){
+        if(pthread_create(&threads[i],NULL,thread_main,NULL)!=0){
+            exit(-1);
+        }
+    }
+
     while (1) {
         char code;
         char *command_message;
@@ -508,6 +518,5 @@ int main(int argc, char **argv) {
         }
 
         pcq_enqueue(&producer_consumer, command_message);
-        thread_main();
     }
 }
