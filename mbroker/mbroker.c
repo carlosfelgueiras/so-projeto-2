@@ -361,8 +361,6 @@ void* thread_main(void* i) {
         default:
             break;
         }
-
-        break; // PARA JA
     }
     return NULL;
 }
