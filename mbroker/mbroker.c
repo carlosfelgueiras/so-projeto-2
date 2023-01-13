@@ -20,6 +20,8 @@ p_box_info *box_info;
 pthread_mutex_t *box_info_mutex;
 box_usage_state_t *box_usage;
 pthread_mutex_t box_usage_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t *box_cond;
+pthread_mutex_t *box_cond_lock;
 long unsigned int box_max_number;
 
 int box_alloc() {
@@ -136,8 +138,36 @@ void publisher(char *pipe_name, char *box_name) {
         box_info[box_id].box_size += bytes_writen;
         pthread_mutex_unlock(&box_info_mutex[box_id]);
 
-        // DAR SIGNAL
+        pthread_cond_broadcast(&box_cond[box_id]);
     }
+}
+
+int send_message_to_subscriber(int pipe_fd, char *mes) {
+    size_t aux = 0;
+    
+    while (1) {
+        size_t size = strlen(mes + aux);
+        
+        if (size == 0) {
+            break;
+        }
+
+        char buffer[P_SUB_MESSAGE_SIZE] = {0};
+        buffer[0] = P_SUB_MESSAGE_CODE;
+        strcpy(buffer + 1, mes + aux);
+
+        ssize_t bytes_wr = write(pipe_fd, buffer, P_SUB_MESSAGE_SIZE);
+        if (bytes_wr != P_SUB_MESSAGE_SIZE) {
+            if (bytes_wr == -1) {
+                return -1;
+            }
+
+            exit(-1);
+        }
+        aux += size + 1;
+    }
+
+    return 0;
 }
 
 void subscriber(char *pipe_name, char *box_name) {
@@ -166,32 +196,38 @@ void subscriber(char *pipe_name, char *box_name) {
         exit(-1);
     }
 
-    size_t aux = 0;
+
     char message[P_MESSAGE_SIZE + 1] = {0};
-    ssize_t bytes_rd = tfs_read(box_fd, message, P_MESSAGE_SIZE);
-    if (bytes_rd < 0) {
-        exit(-1);
-    }
     while (1) {
-        size_t size = strlen(message + aux);
-        if (size == 0) {
+        ssize_t bytes_read;
+
+        memset(message, 0, P_MESSAGE_SIZE +1);
+
+        pthread_mutex_lock(&box_cond_lock[box_id]);
+
+        while ((bytes_read = tfs_read(box_fd, message, P_MESSAGE_SIZE)) == 0)
+            pthread_cond_wait(&box_cond[box_id], &box_cond_lock[box_id]);
+        
+        pthread_mutex_unlock(&box_cond_lock[box_id]);
+
+        if (bytes_read == -1) {
             break;
         }
-        char buffer[P_SUB_MESSAGE_SIZE] = {0};
-        buffer[0] = P_SUB_MESSAGE_CODE;
-        strcpy(buffer + 1, message + aux);
 
-        if (write(pipe_fd, buffer, P_SUB_MESSAGE_SIZE) != P_SUB_MESSAGE_SIZE) {
-            exit(-1);
+        if (send_message_to_subscriber(pipe_fd, message) == -1) {
+            break;
         }
-        aux += size + 1;
+
     }
+
 
     if (close(pipe_fd) < 0) {
         exit(-1);
     }
-
-    // TODO: IMPLEMENTAR FICAR A ESPERA
+    
+    if (tfs_close(box_fd) < 0) {
+        exit(-1);
+    }
 }
 
 void manager_box_creation(char *pipe_name, char *box_name) {
@@ -337,8 +373,8 @@ void manager_box_listing(char *pipe_name) {
     }
 }
 
-void* thread_main(void* i) {
-    (void) i;
+void *thread_main(void *i) {
+    (void)i;
     while (1) {
         char *command = (char *)pcq_dequeue(&producer_consumer);
 
@@ -391,6 +427,11 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+        fprintf(stderr, "signal\n");
+        exit(-1);
+    } 
+
     tfs_params params = tfs_default_params();
     box_max_number = params.max_inode_count;
 
@@ -408,8 +449,14 @@ int main(int argc, char **argv) {
     if (box_usage == NULL) {
         exit(-1);
     }
-
-    if (pcq_create(&producer_consumer, (size_t)(2 * max_sessions)) == -1) {
+    box_cond =
+        (pthread_cond_t *)malloc(sizeof(pthread_cond_t) * box_max_number);
+    if (box_cond == NULL) {
+        exit(-1);
+    }
+    box_cond_lock =
+        (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t) * box_max_number);
+    if (box_cond_lock == NULL) {
         exit(-1);
     }
 
@@ -417,7 +464,20 @@ int main(int argc, char **argv) {
         if (pthread_mutex_init(&box_info_mutex[i], NULL) != 0) {
             exit(-1);
         }
+
+        if (pthread_mutex_init(&box_cond_lock[i], NULL) != 0) {
+            exit(-1);
+        }
+
+        if (pthread_cond_init(&box_cond[i], NULL) != 0) {
+            exit(-1);
+        }
+
         box_usage[i] = FREE;
+    }
+
+    if (pcq_create(&producer_consumer, (size_t)(2 * max_sessions)) == -1) {
+        exit(-1);
     }
 
     if (unlink(register_pipe) != 0 &&
@@ -445,8 +505,8 @@ int main(int argc, char **argv) {
 
     pthread_t threads[max_sessions];
 
-    for(int i=0;i<max_sessions;i++){
-        if(pthread_create(&threads[i],NULL,thread_main,NULL)!=0){
+    for (int i = 0; i < max_sessions; i++) {
+        if (pthread_create(&threads[i], NULL, thread_main, NULL) != 0) {
             exit(-1);
         }
     }
