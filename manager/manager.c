@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 char tmp_pipe_name[P_PIPE_NAME_SIZE + 5]; // Full name of the pipe
-int pipe_existance = 0; //If the pipe associated to the client exists
+int pipe_existance = 0; // If the pipe associated to the client exists
 
 /*Comparator to sort the boxes through their names in alphabetical order*/
 int compare_box(const void *a, const void *b) {
@@ -22,13 +22,14 @@ int compare_box(const void *a, const void *b) {
 /*function to open the register pipe*/
 int open_register_pipe(char *register_pipename) {
     char register_pn[P_PIPE_NAME_SIZE + 5];
-    sprintf(register_pn, "/tmp/%s", register_pipename); //To acess the tmp directory where the pipe is
+    sprintf(register_pn, "/tmp/%s",
+            register_pipename); // To acess the tmp directory where the pipe is
 
     int register_pipe_fd = open(register_pn, O_WRONLY);
     if (register_pipe_fd < 0) {
         exit(-1);
     }
-    return register_pipe_fd; //returns the file descriptor for the pipe
+    return register_pipe_fd; // returns the file descriptor for the pipe
 }
 
 /*Function to close the register pipe*/
@@ -46,7 +47,7 @@ int open_pipe() {
         exit(-1);
     }
 
-    return pipe_fd; //Returns the file descriptor for the pipe
+    return pipe_fd; // Returns the file descriptor for the pipe
 }
 
 /*Function to close the pipe associated to the client*/
@@ -61,72 +62,32 @@ void request_box_creation(char *register_pipe_name, char *pipe_name,
                           char *box_name) {
     char register_code[P_BOX_CREATION_SIZE];
 
-    //Creating the protocol message to send to mbroker
+    // Creating the protocol message to send to mbroker
     p_build_box_creation(register_code, pipe_name, box_name);
 
-    int register_pipe_fd = open_register_pipe(register_pipe_name); //Opening the register pipe
+    int register_pipe_fd =
+        open_register_pipe(register_pipe_name); // Opening the register pipe
 
     if (write(register_pipe_fd, register_code, P_BOX_CREATION_SIZE) !=
-        P_BOX_CREATION_SIZE) { //Sending the message and verifying if it was sent correctly
+        P_BOX_CREATION_SIZE) { // Sending the message and verifying if it was
+                               // sent correctly
         exit(-1);
     }
 
-    close_register_pipe(register_pipe_fd); //Closing the register pipe
+    close_register_pipe(register_pipe_fd); // Closing the register pipe
 
-    int pipe_fd = open_pipe(); //Opening the pipe associated to the client
+    int pipe_fd = open_pipe(); // Opening the pipe associated to the client
 
-    p_response response; //Struct for the response from the mbroker
-    //Reading the response from the pipe associated to the client
+    p_response response; // Struct for the response from the mbroker
+    // Reading the response from the pipe associated to the client
     if (read(pipe_fd, &response, sizeof(p_response)) != sizeof(p_response)) {
         exit(-1);
     }
-    //Veryfing if the code sent is not corrupted
+    // Veryfing if the code sent is not corrupted
     if (response.protocol_code != P_BOX_CREATION_RESPONSE_CODE) {
         exit(-1);
     }
-    /*Veryfing the status of the request, is it is 0, 
-    it was done sucessfully, if it is -1, an error was caused*/
-    if (response.return_code == 0) { 
-        fprintf(stdout, "OK\n");
-    } else if (response.return_code == -1) {
-        fprintf(stdout, "ERROR %s\n", response.error_message);
-    } else {
-        exit(-1);
-    }
-
-    close_pipe(pipe_fd); //Closing the pipe associated to the client
-}
-
-/*Function that sends the request to mbroker for the removal of a box*/
-void request_box_removal(char *register_pipe_name, char *pipe_name,
-                         char *box_name) {
-    char register_code[P_BOX_REMOVAL_SIZE];
-
-    //Creating the protocol message to send to mbroker
-    p_build_box_removal(register_code, pipe_name, box_name);
-
-    int register_pipe_fd = open_register_pipe(register_pipe_name); //Opening the register pipe
-
-    if (write(register_pipe_fd, register_code, P_BOX_REMOVAL_SIZE) !=
-        P_BOX_REMOVAL_SIZE) { //Sending the message and verifying if it was sent correctly
-        exit(-1);
-    }
-
-    close_register_pipe(register_pipe_fd); //Closing the register pipe
-
-    int pipe_fd = open_pipe(); //Opening the pipe associated to the client
-
-    p_response response; //Struct for the response from the mbroker
-    //Reading the response from the pipe associated to the client
-    if (read(pipe_fd, &response, P_BOX_REMOVAL_RESPONSE_SIZE) !=
-        P_BOX_REMOVAL_RESPONSE_SIZE) {
-        exit(-1);
-    }
-    //Veryfing if the code sent is not corrupted
-    if (response.protocol_code != P_BOX_REMOVAL_RESPONSE_CODE) {
-        exit(-1);
-    }
-    /*Veryfing the status of the request, is it is 0, 
+    /*Veryfing the status of the request, is it is 0,
     it was done sucessfully, if it is -1, an error was caused*/
     if (response.return_code == 0) {
         fprintf(stdout, "OK\n");
@@ -136,67 +97,117 @@ void request_box_removal(char *register_pipe_name, char *pipe_name,
         exit(-1);
     }
 
-    close_pipe(pipe_fd); //Closing the pipe associated to the client
+    close_pipe(pipe_fd); // Closing the pipe associated to the client
+}
+
+/*Function that sends the request to mbroker for the removal of a box*/
+void request_box_removal(char *register_pipe_name, char *pipe_name,
+                         char *box_name) {
+    char register_code[P_BOX_REMOVAL_SIZE];
+
+    // Creating the protocol message to send to mbroker
+    p_build_box_removal(register_code, pipe_name, box_name);
+
+    int register_pipe_fd =
+        open_register_pipe(register_pipe_name); // Opening the register pipe
+
+    if (write(register_pipe_fd, register_code, P_BOX_REMOVAL_SIZE) !=
+        P_BOX_REMOVAL_SIZE) { // Sending the message and verifying if it was
+                              // sent correctly
+        exit(-1);
+    }
+
+    close_register_pipe(register_pipe_fd); // Closing the register pipe
+
+    int pipe_fd = open_pipe(); // Opening the pipe associated to the client
+
+    p_response response; // Struct for the response from the mbroker
+    // Reading the response from the pipe associated to the client
+    if (read(pipe_fd, &response, P_BOX_REMOVAL_RESPONSE_SIZE) !=
+        P_BOX_REMOVAL_RESPONSE_SIZE) {
+        exit(-1);
+    }
+    // Veryfing if the code sent is not corrupted
+    if (response.protocol_code != P_BOX_REMOVAL_RESPONSE_CODE) {
+        exit(-1);
+    }
+    /*Veryfing the status of the request, is it is 0,
+    it was done sucessfully, if it is -1, an error was caused*/
+    if (response.return_code == 0) {
+        fprintf(stdout, "OK\n");
+    } else if (response.return_code == -1) {
+        fprintf(stdout, "ERROR %s\n", response.error_message);
+    } else {
+        exit(-1);
+    }
+
+    close_pipe(pipe_fd); // Closing the pipe associated to the client
 }
 
 /*Function that sends the request to mbroker for the listing of all the boxes*/
 void request_box_list(char *pipe_name, char *register_pipe_name) {
     char register_code[P_BOX_LISTING_SIZE];
 
-    //Creating the protocol message to send to mbroker
+    // Creating the protocol message to send to mbroker
     p_build_box_listing(register_code, pipe_name);
 
-    int register_pipe_fd = open_register_pipe(register_pipe_name); //Opening the register pipe
+    int register_pipe_fd =
+        open_register_pipe(register_pipe_name); // Opening the register pipe
 
     if (write(register_pipe_fd, register_code, P_BOX_LISTING_SIZE) !=
-        P_BOX_LISTING_SIZE) { //Sending the message and verifying if it was sent correctly
+        P_BOX_LISTING_SIZE) { // Sending the message and verifying if it was
+                              // sent correctly
         exit(-1);
     }
 
-    close_register_pipe(register_pipe_fd); //Closing the register pipe
+    close_register_pipe(register_pipe_fd); // Closing the register pipe
 
-    int pipe_fd = open_pipe(); //Opening the pipe associated to the client
-    
-    //An array wich will hold all boxes for listing 
+    int pipe_fd = open_pipe(); // Opening the pipe associated to the client
+
+    // An array wich will hold all boxes for listing
     p_box_response *array = (p_box_response *)malloc(sizeof(p_box_response));
-    unsigned int size = 0; //Current capacity occupied in the array
-    unsigned int cap = 1;  //Total capacity of the array
+    unsigned int size = 0; // Current capacity occupied in the array
+    unsigned int cap = 1;  // Total capacity of the array
 
-    p_box_response response; //Struct which will hold the response from the mbroker
+    p_box_response
+        response; // Struct which will hold the response from the mbroker
     while (1) {
         if (read(pipe_fd, &response, sizeof(p_box_response)) !=
-            sizeof(p_box_response)) { //Reading the response from the pipe associated to the client
+            sizeof(p_box_response)) { // Reading the response from the pipe
+                                      // associated to the client
             exit(-1);
         }
-        //Veryfing if the code sent is not corrupted
+        // Veryfing if the code sent is not corrupted
         if (response.protocol_code != P_BOX_LISTING_RESPONSE_CODE) {
             exit(-1);
         }
-        //If the array fills up, we double its size
+        // If the array fills up, we double its size
         if (size >= cap) {
             cap *= 2;
             array =
                 (p_box_response *)realloc(array, cap * sizeof(p_box_response));
         }
-        //Adding the response to the array and increasing its size
+        // Adding the response to the array and increasing its size
         array[size++] = response;
 
-        if (response.last == 1) //Verifies if the the box sent is the last one
+        if (response.last == 1) // Verifies if the the box sent is the last one
             break;
     }
 
-    close_pipe(pipe_fd); //Closing the pipe associated to the client
+    close_pipe(pipe_fd); // Closing the pipe associated to the client
 
-    if (size == 1 && strlen(array[0].box_name) == 0) { //Verifies if there were no boxes sent
+    if (size == 1 && strlen(array[0].box_name) ==
+                         0) { // Verifies if there were no boxes sent
         fprintf(stdout, "NO BOXES FOUND\n");
         free(array);
         return;
     }
 
-    //Sort the boxes through their names in alphabetical order
+    // Sort the boxes through their names in alphabetical order
     qsort(array, (size_t)size, sizeof(p_box_response), compare_box);
 
-    for (int i = 0; i < size; i++) { //Print to stdout the boxes and their attributes
+    for (int i = 0; i < size;
+         i++) { // Print to stdout the boxes and their attributes
         fprintf(stdout, "%s %zu %zu %zu\n", array[i].box_name,
                 (size_t)array[i].box_size, (size_t)array[i].n_publishers,
                 (size_t)array[i].n_subscribers);
@@ -205,12 +216,13 @@ void request_box_list(char *pipe_name, char *register_pipe_name) {
     free(array);
 }
 
-/*Hanler to finalise this session, destroying the pipe associated to the client*/
+/*Hanler to finalise this session, destroying the pipe associated to the
+ * client*/
 void signal_handler(int sig) {
     (void)sig;
     ssize_t bytes;
     (void)bytes;
-    if (pipe_existance == 1) { //If the pipe was created
+    if (pipe_existance == 1) { // If the pipe was created
         if (unlink(tmp_pipe_name) != 0 &&
             errno !=
                 ENOENT) { // To prevent the case where the pipe already exists
@@ -223,7 +235,8 @@ void signal_handler(int sig) {
     _exit(EXIT_SUCCESS);
 }
 
-/*Function that in case of incorrect usage, shows the various usages otf the client*/
+/*Function that in case of incorrect usage, shows the various usages otf the
+ * client*/
 static void print_usage() {
     fprintf(stderr, "usage: \n"
                     "   manager <register_pipe> <pipe_name> create <box_name>\n"
@@ -235,13 +248,16 @@ int main(int argc, char **argv) {
     char pipe_name[P_PIPE_NAME_SIZE] = {0};
     pid_t pid;
 
-    if (argc < 4 || argc > 5) { //Checks if the number of arguments are incorrect
+    if (argc < 4 ||
+        argc > 5) { // Checks if the number of arguments are incorrect
         print_usage();
         exit(-1);
     }
 
     if ((strlen(argv[1]) > P_PIPE_NAME_SIZE - 1) ||
-        (strlen(argv[2]) > P_PIPE_NAME_SIZE - 6)) { //Checks if the pipenames received are correct
+        (strlen(argv[2]) >
+         P_PIPE_NAME_SIZE -
+             6)) { // Checks if the pipenames received are correct
         print_usage();
         exit(-1);
     }
@@ -273,26 +289,30 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    pipe_existance = 1; //Shows that the pipe already exists
+    pipe_existance = 1; // Shows that the pipe already exists
 
     switch (argc) {
-    case 4: //In case the number of arguments is 4
-        if (!strcmp(argv[3], "list")) { //Checks if it is a request to list the boxes
+    case 4: // In case the number of arguments is 4
+        if (!strcmp(argv[3],
+                    "list")) { // Checks if it is a request to list the boxes
             request_box_list(pipe_name, argv[1]);
         } else {
             print_usage();
             exit(-1);
         }
         break;
-    case 5: //In case the number of arguments is 5
-        if (strlen(argv[4]) > P_BOX_NAME_SIZE - 1) { //Checks if the box name sent is correct
+    case 5: // In case the number of arguments is 5
+        if (strlen(argv[4]) >
+            P_BOX_NAME_SIZE - 1) { // Checks if the box name sent is correct
             print_usage();
             exit(-1);
         }
 
-        if (!strcmp(argv[3], "create")) { //Checks if it is a request to create a box
+        if (!strcmp(argv[3],
+                    "create")) { // Checks if it is a request to create a box
             request_box_creation(argv[1], pipe_name, argv[4]);
-        } else if (!strcmp(argv[3], "remove")) { //Checks if it is a resquest to remove a box
+        } else if (!strcmp(argv[3], "remove")) { // Checks if it is a resquest
+                                                 // to remove a box
             request_box_removal(argv[1], pipe_name, argv[4]);
         } else {
             print_usage();

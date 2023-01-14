@@ -18,11 +18,12 @@ int pipe_fd;                              // File descriptor of the pipe
 void register_in_mbroker(char *register_pipename, char *pipe_name,
                          char *box_name) {
     char register_code[P_PUB_REGISTER_SIZE];
-    char register_pn[P_PIPE_NAME_SIZE + 5] = {0}; //Pipe name of the register pipe
+    char register_pn[P_PIPE_NAME_SIZE + 5] = {
+        0}; // Pipe name of the register pipe
 
     // Creating the code according to the protocol
     p_build_pub_register(register_code, pipe_name, box_name);
-    //To open the pipe in tmp directory
+    // To open the pipe in tmp directory
     sprintf(register_pn, "/tmp/%s", register_pipename);
 
     // Open register pipe
@@ -48,7 +49,7 @@ void send_message_to_mbroker(char *message) {
 
     // Creating the code
     p_build_pub_message(message_code, message);
-    
+
     // Writing the code to the associated pipe
     ssize_t bytes_wr = write(pipe_fd, message_code, P_PUB_MESSAGE_SIZE);
     if (bytes_wr != P_PUB_MESSAGE_SIZE) {
@@ -57,7 +58,7 @@ void send_message_to_mbroker(char *message) {
 }
 
 /*Signal handler to handle the signals SIGPIPE AND SIGINT
-(SIGINT was not specified to be handled in publisher, 
+(SIGINT was not specified to be handled in publisher,
 but we did for simplicity)*/
 static void signal_handler(int sig) {
     if (pipe_status == 1) { // if the pipe is open, closes it
@@ -157,7 +158,7 @@ int main(int argc, char **argv) {
         send_message_to_mbroker(message);
     }
 
-    raise(SIGINT); //To close the publisher session in the manner we want
+    raise(SIGINT); // To close the publisher session in the manner we want
 
     return 0;
 }

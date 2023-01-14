@@ -58,15 +58,16 @@ static void signal_handler(int sig) {
     switch (sig) { // since both signals cause simmilar effects, we use the same
                    // handler
     case SIGPIPE:
-        //Writing messages to stdout
+        // Writing messages to stdout
         bytes_wr = write(1, "[ERR]: unable to register on mbroker\n", 37);
         _exit(EXIT_FAILURE);
         break;
     case SIGINT:
-        //Writing messages do stdout
+        // Writing messages do stdout
         bytes_wr = write(
             1, "pipes closed and program terminated\nnumber of messages: ", 57);
-        bytes_wr = write(1, number_of_messages, 20); //Showing the number of messages read
+        bytes_wr = write(1, number_of_messages,
+                         20); // Showing the number of messages read
         bytes_wr = write(1, "\n", 1);
         _exit(EXIT_SUCCESS);
         break;
@@ -142,12 +143,13 @@ int main(int argc, char **argv) {
         // reads from the pipe the protocol code
         ssize_t bytes_read = read(pipe_fd, &code, 1);
         if (bytes_read != 1) {
-            if (bytes_read == 0) {// if the pipe is closed, exits the program
+            if (bytes_read == 0) { // if the pipe is closed, exits the program
                 raise(SIGINT);
             }
 
-            //If an error ocurred in mbroker, most likely a problem with the box chosen
-            fprintf(stderr, "Unable to read from the box\n"); 
+            // If an error ocurred in mbroker, most likely a problem with the
+            // box chosen
+            fprintf(stderr, "Unable to read from the box\n");
             exit(-1);
         }
 
@@ -163,7 +165,8 @@ int main(int argc, char **argv) {
                 raise(SIGINT);
             }
 
-            //If an error ocurred in mbroker, most likely a problem with the box chosen
+            // If an error ocurred in mbroker, most likely a problem with the
+            // box chosen
             fprintf(stderr, "Unable to read from the box\n");
             exit(-1);
         }
