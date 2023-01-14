@@ -300,6 +300,7 @@ void manager_box_creation(char *pipe_name, char *box_name) {
     send_response_client_manager(pipe_fd, "", P_BOX_CREATION_RESPONSE_CODE); //If the box created succesfully
 }
 
+/*Function that treats the removal requests*/
 void manager_box_removal(char *pipe_name, char *box_name) {
     char tmp_pipe_name[P_PIPE_NAME_SIZE + 5];
     sprintf(tmp_pipe_name, "/tmp/%s", pipe_name);
@@ -310,22 +311,23 @@ void manager_box_removal(char *pipe_name, char *box_name) {
         return;
     }
 
-    int box_id = box_info_lookup(box_name);
-    if (box_id == -1) {
+    int box_id = box_info_lookup(box_name); //Searches for the boxes
+    if (box_id == -1) { //In case the box does not exist
         send_response_client_manager(pipe_fd, "Such box does not exist",
                                      P_BOX_REMOVAL_RESPONSE_CODE);
         return;
     }
 
-    if (tfs_unlink(box_info[box_id].box_name) == -1) {
+    if (tfs_unlink(box_info[box_id].box_name) == -1) { //Deletes the box from TFS
         exit(-1);
     }
 
     box_delete(box_id);
-    pthread_cond_broadcast(&box_cond[box_id]);
-    send_response_client_manager(pipe_fd, "", P_BOX_REMOVAL_RESPONSE_CODE);
+    pthread_cond_broadcast(&box_cond[box_id]); //Broadcast to all sessions taht the box is deleted
+    send_response_client_manager(pipe_fd, "", P_BOX_REMOVAL_RESPONSE_CODE); //In case it removed the box sucessfully
 }
 
+/*Fucntion that treats the listing boxes request*/
 void manager_box_listing(char *pipe_name) {
     char tmp_pipe_name[P_PIPE_NAME_SIZE + 5];
     sprintf(tmp_pipe_name, "/tmp/%s", pipe_name);
@@ -338,14 +340,15 @@ void manager_box_listing(char *pipe_name) {
 
     int last = -1;
     for (int i = 0; i < box_max_number; i++) {
-        if (box_usage[i] == TAKEN) {
+        if (box_usage[i] == TAKEN) { //Searches for the index of the last box
             last = i;
         }
     }
 
-    if (last == -1) {
+    if (last == -1) { //In case there are no boxes
         p_box_response response;
 
+        //Initializing the structure
         response.protocol_code = P_BOX_LISTING_RESPONSE_CODE;
         response.last = 1;
         memset(response.box_name, 0, P_BOX_NAME_SIZE);
@@ -354,7 +357,7 @@ void manager_box_listing(char *pipe_name) {
         response.n_subscribers = 0;
 
         if (write(pipe_fd, &response, sizeof(p_box_response)) !=
-            sizeof(p_box_response)) {
+            sizeof(p_box_response)) { //Writes to the pipe
             exit(-1);
         }
 
@@ -366,14 +369,13 @@ void manager_box_listing(char *pipe_name) {
     }
 
     for (int i = 0; i < box_max_number; i++) {
-        // Lock???
         uint8_t last_info = 0;
 
         if (i == last) {
             last_info = 1;
         }
 
-        if (box_usage[i] == TAKEN) {
+        if (box_usage[i] == TAKEN) { //Send all the boxes to the pipe
             p_box_response response =
                 p_build_box_listing_response(last_info, box_info[i]);
             if (write(pipe_fd, &response, sizeof(p_box_response)) !=
@@ -392,12 +394,14 @@ void manager_box_listing(char *pipe_name) {
     }
 }
 
+/*Main function for all threads that treat sessions*/
 void *thread_main(void *i) {
     (void)i;
     while (1) {
+        //Remove a request to treat it from de pcq
         char *command = (char *)pcq_dequeue(&producer_consumer);
 
-        switch (command[0]) {
+        switch (command[0]) { //Chooses the function that treats the request
         case P_PUB_REGISTER_CODE:
             publisher(command + 1, command + P_PIPE_NAME_SIZE + 1);
             break;
