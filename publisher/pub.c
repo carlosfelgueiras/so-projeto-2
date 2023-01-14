@@ -14,14 +14,15 @@ char tmp_pipe_name[P_PIPE_NAME_SIZE + 5]; // Full name of the pipe
 int pipe_status = 0;                      // If the pipe is open or not
 int pipe_fd;                              // File descriptor of the pipe
 
+/*Function that register the publisher in mbroker*/
 void register_in_mbroker(char *register_pipename, char *pipe_name,
                          char *box_name) {
-    // Function that register the publisher in mbroker
     char register_code[P_PUB_REGISTER_SIZE];
-    char register_pn[P_PIPE_NAME_SIZE + 5] = {0};
+    char register_pn[P_PIPE_NAME_SIZE + 5] = {0}; //Pipe name of the register pipe
 
     // Creating the code according to the protocol
     p_build_pub_register(register_code, pipe_name, box_name);
+    //To open the pipe in tmp directory
     sprintf(register_pn, "/tmp/%s", register_pipename);
 
     // Open register pipe
@@ -41,9 +42,8 @@ void register_in_mbroker(char *register_pipename, char *pipe_name,
         exit(-1);
     }
 }
-
+/*Function that creates the code to send the message*/
 void send_message_to_mbroker(char *message) {
-    // function that creates the code to send the message
     char message_code[P_PUB_MESSAGE_SIZE] = {0};
 
     // TODO: make function that builds this message
@@ -57,6 +57,9 @@ void send_message_to_mbroker(char *message) {
     };
 }
 
+/*Signal handler to handle the signals SIGPIPE AND SIGINT
+(SIGINT was not specified to be handled in publisher, 
+but we did for simplicity)*/
 static void signal_handler(int sig) {
     if (pipe_status == 1) { // if the pipe is open, closes it
         close(pipe_fd);
@@ -86,13 +89,13 @@ int main(int argc, char **argv) {
     pid_t pid;
 
     if (signal(SIGPIPE, signal_handler) ==
-        SIG_ERR) { // swaps the signal handler for SIGPIPE
+        SIG_ERR) { // swaps the default signal handler for SIGPIPE
         fprintf(stderr, "signal\n");
         exit(-1);
     }
 
     if (signal(SIGINT, signal_handler) ==
-        SIG_ERR) { // swaps the signal handler for SIGINT
+        SIG_ERR) { // swaps the default signal handler for SIGINT
         fprintf(stderr, "signal\n");
         exit(-1);
     }
@@ -110,7 +113,7 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    pid = getpid(); // maximum legnth of pid is 5 digits
+    pid = getpid(); // Maximum legnth of pid is 5 digits
 
     sprintf(pipe_name, "%s%05d", argv[2],
             pid); // Associating the pid to the pipe_name given
@@ -155,7 +158,7 @@ int main(int argc, char **argv) {
         send_message_to_mbroker(message);
     }
 
-    raise(SIGINT);
+    raise(SIGINT); //To close the publisher session in the manner we want
 
     return 0;
 }
