@@ -14,42 +14,46 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-int register_pipe_fd;
-pc_queue_t producer_consumer;
-p_box_info *box_info;
-pthread_mutex_t *box_info_mutex;
-box_usage_state_t *box_usage;
-pthread_mutex_t box_usage_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t *box_cond;
-pthread_mutex_t *box_cond_lock;
-long unsigned int box_max_number;
+int register_pipe_fd;//File descriptor por the register pipe
+pc_queue_t producer_consumer; //Producer_consumer queue
+p_box_info *box_info; //Array which holds the various boxes information
+pthread_mutex_t *box_info_mutex; //Array which holds the mutex for each box
+box_usage_state_t *box_usage; //Array which holds the information if the box is in use or not
+pthread_mutex_t box_usage_mutex = PTHREAD_MUTEX_INITIALIZER; //Mutex for the Array box_usage
+pthread_cond_t *box_cond; //Array which holds the conditional locks for each box
+pthread_mutex_t *box_cond_lock; //Array which holds the lock associated with conditional locks for each box
+long unsigned int box_max_number; //The max number of boxes
 
+/*Function that creates a box*/
 int box_alloc() {
     pthread_mutex_lock(&box_usage_mutex);
 
     for (int i = 0; i < box_max_number; i++) {
-        if (box_usage[i] == FREE) {
+        if (box_usage[i] == FREE) { //Allocs a space for the box
             box_usage[i] = TAKEN;
 
             pthread_mutex_unlock(&box_usage_mutex);
 
-            return i;
+            return i; //Return the index for the box
         }
     }
     pthread_mutex_unlock(&box_usage_mutex);
     return -1;
 }
 
+/*Function that deletes the box*/
 void box_delete(int i) {
     pthread_mutex_lock(&box_usage_mutex);
-    box_usage[i] = FREE;
+    box_usage[i] = FREE; //Changes to free the box_usage for that index
     pthread_mutex_unlock(&box_usage_mutex);
 }
 
+/*Function that searches for the box*/
 int box_info_lookup(char *box_name) {
-    char box_name_slash[P_BOX_NAME_SIZE + 1];
+    char box_name_slash[P_BOX_NAME_SIZE + 1]; //Each box name is saved with / in the beginning of their names
     sprintf(box_name_slash, "/%s", box_name);
     for (int i = 0; i < box_max_number; i++) {
+        //If the name is the same and the box is taken, returns the index
         if (box_usage[i] == TAKEN &&
             !strcmp(box_name_slash, box_info[i].box_name))
             return i;
@@ -57,23 +61,24 @@ int box_info_lookup(char *box_name) {
     return -1;
 }
 
+/*Function that send the response to the manager for the creation or removal request*/
 void send_response_client_manager(int fd, char *message, u_int8_t choice) {
     p_response response;
     strcpy(response.error_message, message);
 
-    if (strlen(message) == 0) {
-        response.return_code = 0;
+    if (strlen(message) == 0) { 
+        response.return_code = 0; //Signifies that the request was made sucessfully
     } else {
-        response.return_code = -1;
+        response.return_code = -1; //Signifies that the resquest was unbale to be completed
     }
 
-    response.protocol_code = choice;
+    response.protocol_code = choice; //The code for the response for each request is different
 
-    if (write(fd, &response, sizeof(response)) != sizeof(response)) {
+    if (write(fd, &response, sizeof(response)) != sizeof(response)) { //Sends the response throught the pipe
         exit(-1);
     }
 
-    if (close(fd) < 0) {
+    if (close(fd) < 0) { //Closes the pipe
         exit(-1);
     }
 }
