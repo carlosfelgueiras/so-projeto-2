@@ -92,7 +92,7 @@ void publisher(char *pipe_name, char *box_name) {
     int pipe_fd = open(tmp_pipe_name, O_RDONLY);
 
     if (pipe_fd < 0) {
-        exit(-1);
+        return;
     }
 
     int box_id = box_info_lookup(box_name);
@@ -177,7 +177,7 @@ void subscriber(char *pipe_name, char *box_name) {
     int pipe_fd = open(tmp_pipe_name, O_WRONLY);
 
     if (pipe_fd < 0) {
-        exit(-1);
+        return;
     }
 
     int box_id = box_info_lookup(box_name);
@@ -240,7 +240,7 @@ void manager_box_creation(char *pipe_name, char *box_name) {
     int pipe_fd = open(tmp_pipe_name, O_WRONLY);
 
     if (pipe_fd < 0) {
-        exit(-1);
+        return;
     }
 
     if (box_info_lookup(box_name) != -1) {
@@ -287,7 +287,7 @@ void manager_box_removal(char *pipe_name, char *box_name) {
     int pipe_fd = open(tmp_pipe_name, O_WRONLY);
 
     if (pipe_fd < 0) {
-        exit(-1);
+        return;
     }
 
     int box_id = box_info_lookup(box_name);
@@ -314,7 +314,7 @@ void manager_box_listing(char *pipe_name) {
     int pipe_fd = open(tmp_pipe_name, O_WRONLY);
 
     if (pipe_fd < 0) {
-        exit(-1);
+        return;
     }
 
     int last = -1;
