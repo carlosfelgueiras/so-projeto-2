@@ -83,6 +83,7 @@ void send_response_client_manager(int fd, char *message, u_int8_t choice) {
     }
 }
 
+/*Function that treats the session for a publisher client*/
 void publisher(char *pipe_name, char *box_name) {
     char tmp_pipe_name[P_PIPE_NAME_SIZE + 5] = {0};
     sprintf(tmp_pipe_name, "/tmp/%s", pipe_name);
@@ -93,9 +94,11 @@ void publisher(char *pipe_name, char *box_name) {
         return;
     }
 
+    //Searchs for the box
     int box_id = box_info_lookup(box_name);
 
-    if (box_id < 0 || box_info[box_id].n_publishers >= 1) {
+    if (box_id < 0 || box_info[box_id].n_publishers >= 1) { 
+        //In case the box does not exist, or there is already a publisher associated with the box
         if (close(pipe_fd) < 0) {
             exit(-1);
         }
@@ -103,17 +106,19 @@ void publisher(char *pipe_name, char *box_name) {
         return;
     }
 
+    //Opens the box at the end of its text
     int box_fd = tfs_open(box_info[box_id].box_name, O_APPEND);
 
     if (box_fd < 0) {
         exit(-1);
     }
 
-    char buffer[P_PUB_MESSAGE_SIZE];
+    char buffer[P_PUB_MESSAGE_SIZE]; //Buffer which will hold the messages
     while (1) {
-        ssize_t code = read(pipe_fd, &buffer, P_PUB_MESSAGE_SIZE);
-        if (code != P_PUB_MESSAGE_SIZE) {
-            if (code == 0) {
+        ssize_t code = read(pipe_fd, &buffer, P_PUB_MESSAGE_SIZE); //Reads from buffer
+        if (code != P_PUB_MESSAGE_SIZE) { //In case the message is not of the size required
+            if (code == 0) { 
+                //If it does not read, it means that the publisher has finished and the pipe is broken
                 if (close(pipe_fd) < 0) {
                     exit(-1);
                 }
@@ -130,13 +135,15 @@ void publisher(char *pipe_name, char *box_name) {
 
         size_t size = strlen(buffer + 1) + 1; // To include a /0d
 
+        //Writes the message to the box
         size_t bytes_writen = (size_t)tfs_write(box_fd, buffer + 1, size);
 
-        if (bytes_writen == -1) {
+        if (bytes_writen == -1) { //if it fails, the box has been removed
             if (close(pipe_fd) < 0) {
                 exit(-1);
             }
-            pthread_cond_broadcast(&box_cond[box_id]);
+            //Wakes all the subscribers associated with this box, to finish their sessions
+            pthread_cond_broadcast(&box_cond[box_id]); 
             return;
         }
 
@@ -148,13 +155,14 @@ void publisher(char *pipe_name, char *box_name) {
     }
 }
 
+/*Function that sends the various message to the subscriber*/
 int send_message_to_subscriber(int pipe_fd, char *mes) {
-    size_t aux = 0;
+    size_t aux = 0; //This variable will "acumulate" the various message sizes
 
     while (1) {
-        size_t size = strlen(mes + aux);
+        size_t size = strlen(mes + aux); //Checks the size until it hits a \0, which signifies the end of a message
 
-        if (size == 0) {
+        if (size == 0) { //There is no message
             break;
         }
 
@@ -162,22 +170,23 @@ int send_message_to_subscriber(int pipe_fd, char *mes) {
         strcpy(message, mes + aux);
         
         char buffer[P_SUB_MESSAGE_SIZE];
-        p_build_sub_message(buffer, message);   
+        p_build_sub_message(buffer, message);//Builds the protocol message to send to the subscriber
 
-        ssize_t bytes_wr = write(pipe_fd, buffer, P_SUB_MESSAGE_SIZE);
-        if (bytes_wr != P_SUB_MESSAGE_SIZE) {
-            if (bytes_wr == -1) {
+        ssize_t bytes_wr = write(pipe_fd, buffer, P_SUB_MESSAGE_SIZE); //Sends to the pipe
+        if (bytes_wr != P_SUB_MESSAGE_SIZE) { 
+            if (bytes_wr == -1) { //In case the pipe is broken, causes SIGPIPE, but we ignore it
                 return -1;
             }
 
             exit(-1);
         }
-        aux += size + 1;
+        aux += size + 1; //To read the next message
     }
 
     return 0;
 }
 
+/*Function that will treat the session for a subscriber*/
 void subscriber(char *pipe_name, char *box_name) {
     char tmp_pipe_name[P_PIPE_NAME_SIZE + 5] = {0};
     sprintf(tmp_pipe_name, "/tmp/%s", pipe_name);
@@ -188,9 +197,9 @@ void subscriber(char *pipe_name, char *box_name) {
         return;
     }
 
-    int box_id = box_info_lookup(box_name);
+    int box_id = box_info_lookup(box_name); //Searches for the box and returns its index
 
-    if (box_id < 0) {
+    if (box_id < 0) { //In case the box does not exist
         if (close(pipe_fd) < 0) {
             exit(-1);
         }
@@ -198,7 +207,7 @@ void subscriber(char *pipe_name, char *box_name) {
         return;
     }
 
-    int box_fd = tfs_open(box_info[box_id].box_name, 0);
+    int box_fd = tfs_open(box_info[box_id].box_name, 0); //Opens the box in its beggining to read
 
     if (box_fd < 0) {
         exit(-1);
@@ -208,20 +217,22 @@ void subscriber(char *pipe_name, char *box_name) {
     while (1) {
         ssize_t bytes_read;
 
-        memset(message, 0, P_MESSAGE_SIZE + 1);
+        memset(message, 0, P_MESSAGE_SIZE + 1); //Resets the buffer
 
         pthread_mutex_lock(&box_cond_lock[box_id]);
 
         while ((bytes_read = tfs_read(box_fd, message, P_MESSAGE_SIZE)) == 0)
+            //If the box has no messages to read, the session is blocked
             pthread_cond_wait(&box_cond[box_id], &box_cond_lock[box_id]);
 
         pthread_mutex_unlock(&box_cond_lock[box_id]);
 
-        if (bytes_read == -1) {
+        if (bytes_read == -1) { //In case the box no longer exists
             break;
         }
-
+        //Send the message to the subscriber
         if (send_message_to_subscriber(pipe_fd, message) == -1) {
+            //In case the pipe is broken
             if (tfs_close(box_fd) < 0) {
                 exit(-1);
             }
@@ -234,8 +245,9 @@ void subscriber(char *pipe_name, char *box_name) {
     }
 }
 
+/*Function that treats the creation of boxes*/
 void manager_box_creation(char *pipe_name, char *box_name) {
-    char box_name_slash[P_BOX_NAME_SIZE + 1];
+    char box_name_slash[P_BOX_NAME_SIZE + 1]; //Box names are saved with a / at their beginning
     sprintf(box_name_slash, "/%s", box_name);
 
     char tmp_pipe_name[P_PIPE_NAME_SIZE + 5] = {0};
@@ -247,23 +259,26 @@ void manager_box_creation(char *pipe_name, char *box_name) {
         return;
     }
 
-    if (box_info_lookup(box_name) != -1) {
+    if (box_info_lookup(box_name) != -1) { //Looks for the box
+        //Enters here if the box exists
         send_response_client_manager(pipe_fd, "Box already exits",
                                      P_BOX_CREATION_RESPONSE_CODE);
         return;
     }
 
-    int box_id = box_alloc();
+    int box_id = box_alloc(); //Creates the box
 
-    if (box_id == -1) {
+    if (box_id == -1) { //In case there is no more space to create the box
         send_response_client_manager(pipe_fd,
                                      "No more space to create new boxes",
                                      P_BOX_CREATION_RESPONSE_CODE);
         return;
     }
 
-    int fd = tfs_open(box_name_slash, TFS_O_CREAT);
+    int fd = tfs_open(box_name_slash, TFS_O_CREAT); //Creates the box in TFS
     if (fd == -1) {
+        //In case we cannot create the box in TFS
+        box_delete(box_id);
         send_response_client_manager(pipe_fd,
                                      "No more space to create new boxes",
                                      P_BOX_CREATION_RESPONSE_CODE);
@@ -274,6 +289,7 @@ void manager_box_creation(char *pipe_name, char *box_name) {
         exit(-1);
     }
 
+    //Initializing the box
     pthread_mutex_lock(&box_info_mutex[box_id]);
     strcpy(box_info[box_id].box_name, box_name_slash);
     box_info[box_id].box_size = 0;
@@ -281,7 +297,7 @@ void manager_box_creation(char *pipe_name, char *box_name) {
     box_info[box_id].n_subscribers = 0;
     pthread_mutex_unlock(&box_info_mutex[box_id]);
 
-    send_response_client_manager(pipe_fd, "", P_BOX_CREATION_RESPONSE_CODE);
+    send_response_client_manager(pipe_fd, "", P_BOX_CREATION_RESPONSE_CODE); //If the box created succesfully
 }
 
 void manager_box_removal(char *pipe_name, char *box_name) {
