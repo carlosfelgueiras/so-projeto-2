@@ -152,10 +152,10 @@ void publisher(char *pipe_name, char *box_name) {
 
 int send_message_to_subscriber(int pipe_fd, char *mes) {
     size_t aux = 0;
-    
+
     while (1) {
         size_t size = strlen(mes + aux);
-        
+
         if (size == 0) {
             break;
         }
@@ -204,18 +204,17 @@ void subscriber(char *pipe_name, char *box_name) {
         exit(-1);
     }
 
-
     char message[P_MESSAGE_SIZE + 1] = {0};
     while (1) {
         ssize_t bytes_read;
 
-        memset(message, 0, P_MESSAGE_SIZE +1);
+        memset(message, 0, P_MESSAGE_SIZE + 1);
 
         pthread_mutex_lock(&box_cond_lock[box_id]);
 
         while ((bytes_read = tfs_read(box_fd, message, P_MESSAGE_SIZE)) == 0)
             pthread_cond_wait(&box_cond[box_id], &box_cond_lock[box_id]);
-        
+
         pthread_mutex_unlock(&box_cond_lock[box_id]);
 
         if (bytes_read == -1) {
@@ -228,13 +227,11 @@ void subscriber(char *pipe_name, char *box_name) {
             }
             break;
         }
-
     }
-
 
     if (close(pipe_fd) < 0) {
         exit(-1);
-    }  
+    }
 }
 
 void manager_box_creation(char *pipe_name, char *box_name) {
@@ -437,7 +434,7 @@ int main(int argc, char **argv) {
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
         fprintf(stderr, "signal\n");
         exit(-1);
-    } 
+    }
 
     tfs_params params = tfs_default_params();
     box_max_number = params.max_inode_count;

@@ -191,12 +191,13 @@ void request_box_list(char *pipe_name, char *register_pipe_name) {
 }
 
 void signal_handler(int sig) {
-    (void) sig;
+    (void)sig;
     ssize_t bytes;
-    (void) bytes;
+    (void)bytes;
     if (pipe_existance == 1) {
         if (unlink(tmp_pipe_name) != 0 &&
-        errno != ENOENT) { // To prevent the case where the pipe already exists
+            errno !=
+                ENOENT) { // To prevent the case where the pipe already exists
             bytes = write(2, "unlink fail\n", 13);
             _exit(EXIT_FAILURE);
         }
