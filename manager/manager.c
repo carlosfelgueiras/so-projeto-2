@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 char tmp_pipe_name[P_PIPE_NAME_SIZE + 5]; // Full name of the pipe
+int pipe_existance = 0;
 
 int compare_box(const void *a, const void *b) {
     return strcmp(((p_box_response *)a)->box_name,
@@ -189,6 +190,22 @@ void request_box_list(char *pipe_name, char *register_pipe_name) {
     free(array);
 }
 
+void signal_handler(int sig) {
+    (void) sig;
+    ssize_t bytes;
+    (void) bytes;
+    if (pipe_existance == 1) {
+        if (unlink(tmp_pipe_name) != 0 &&
+        errno != ENOENT) { // To prevent the case where the pipe already exists
+            bytes = write(2, "unlink fail\n", 13);
+            _exit(EXIT_FAILURE);
+        }
+        bytes = write(1, "pipe destroyed\n", 16);
+    }
+
+    _exit(EXIT_SUCCESS);
+}
+
 static void print_usage() {
     fprintf(stderr, "usage: \n"
                     "   manager <register_pipe> <pipe_name> create <box_name>\n"
@@ -208,6 +225,12 @@ int main(int argc, char **argv) {
     if ((strlen(argv[1]) > P_PIPE_NAME_SIZE - 1) ||
         (strlen(argv[2]) > P_PIPE_NAME_SIZE - 6)) {
         print_usage();
+        exit(-1);
+    }
+
+    if (signal(SIGINT, signal_handler) ==
+        SIG_ERR) { // swaps the signal handler for SIGINT
+        fprintf(stderr, "signal\n");
         exit(-1);
     }
 
@@ -231,6 +254,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "[ERR]: mkfifo failed: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
+
+    pipe_existance = 1;
 
     switch (argc) {
     case 4:
