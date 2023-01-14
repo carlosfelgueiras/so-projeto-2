@@ -428,7 +428,7 @@ int main(int argc, char **argv) {
     char register_pipe[P_PIPE_NAME_SIZE + 5];
     int max_sessions = 0;
 
-    if (argc != 3) {
+    if (argc != 3) { //Verifying if the number of arguments is correct
         fprintf(stderr, "usage: mbroker <pipename> <max_sessions>\n");
         exit(-1);
     }
@@ -438,7 +438,7 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    sprintf(register_pipe, "/tmp/%s", argv[1]);
+    sprintf(register_pipe, "/tmp/%s", argv[1]); //To create the pipe in tmp directory
     sscanf(argv[2], "%d", &max_sessions);
 
     if (max_sessions <= 0) {
@@ -446,17 +446,17 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    if (tfs_init(NULL) == -1) {
+    if (tfs_init(NULL) == -1) { //Initialize the TFS
         exit(-1);
     }
 
-    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) { //Handler for SIGPIPE, so we can ignore it
         fprintf(stderr, "signal\n");
         exit(-1);
     }
 
     tfs_params params = tfs_default_params();
-    box_max_number = params.max_inode_count;
+    box_max_number = params.max_inode_count; //The number of inodes corresponds to the maximum number of boxes
 
     box_info = (p_box_info *)malloc(sizeof(p_box_info) * box_max_number);
     if (box_info == NULL) {
@@ -483,7 +483,7 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    for (int i = 0; i < box_max_number; i++) {
+    for (int i = 0; i < box_max_number; i++) { //Initializes the locks for each box
         if (pthread_mutex_init(&box_info_mutex[i], NULL) != 0) {
             exit(-1);
         }
@@ -499,7 +499,7 @@ int main(int argc, char **argv) {
         box_usage[i] = FREE;
     }
 
-    if (pcq_create(&producer_consumer, (size_t)(2 * max_sessions)) == -1) {
+    if (pcq_create(&producer_consumer, (size_t)(2 * max_sessions)) == -1) { //Creating the pcq
         exit(-1);
     }
 
@@ -521,25 +521,29 @@ int main(int argc, char **argv) {
         exit(-1);
     }
 
-    int write_fd = open(register_pipe, O_WRONLY);
+    int write_fd = open(register_pipe, O_WRONLY); 
+    /*We only open the pipe for write so that the 
+    program does not crash, in case the register pipe is broken by one of the clients*/
     if (write_fd < 0) {
         exit(-1);
     }
 
     pthread_t threads[max_sessions];
 
-    for (int i = 0; i < max_sessions; i++) {
+    for (int i = 0; i < max_sessions; i++) { //Initializing each thread
         if (pthread_create(&threads[i], NULL, thread_main, NULL) != 0) {
             exit(-1);
         }
     }
 
-    while (1) {
+    while (1) { //Cicle to read the request from the register pipe
         char code;
         char *command_message;
+        //Read the code
         if (read(register_pipe_fd, &code, 1) != 1) {
             code = 0;
         }
+        //Depending on the code, the rest of the request may vary in size
         if (code == P_PUB_REGISTER_CODE) {
             command_message =
                 (char *)malloc(P_PUB_REGISTER_SIZE * sizeof(char));
@@ -597,7 +601,7 @@ int main(int argc, char **argv) {
                 exit(-1);
             }
         }
-
+        //After the command message is created, send it to the pcq
         pcq_enqueue(&producer_consumer, command_message);
     }
 }
