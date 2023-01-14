@@ -301,8 +301,7 @@ void manager_box_removal(char *pipe_name, char *box_name) {
     }
 
     box_delete(box_id);
-    /*TODO??: se subscritores estiverem bloqueados e fecharmos a caixa, e
-     * preciso dar broadcast aqui ou deixamos?*/
+    pthread_cond_broadcast(&box_cond[box_id]);
     send_response_client_manager(pipe_fd, "", P_BOX_REMOVAL_RESPONSE_CODE);
 }
 
