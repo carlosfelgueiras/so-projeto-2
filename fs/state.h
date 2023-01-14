@@ -68,6 +68,7 @@ void *data_block_get(int block_number);
 
 int add_to_open_file_table(int inumber, size_t offset);
 void remove_from_open_file_table(int fhandle);
+void remove_inode_from_open_file_table(int inum);
 open_file_entry_t *get_open_file_entry(int fhandle);
 int open_file_table_lookup(int inum);
 

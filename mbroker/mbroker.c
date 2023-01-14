@@ -134,6 +134,14 @@ void publisher(char *pipe_name, char *box_name) {
 
         size_t bytes_writen = (size_t)tfs_write(box_fd, buffer + 1, size);
 
+        if (bytes_writen == -1) {
+            if (close(pipe_fd) < 0) {
+                exit(-1);
+            }
+            pthread_cond_broadcast(&box_cond[box_id]);
+            return;
+        }
+
         pthread_mutex_lock(&box_info_mutex[box_id]);
         box_info[box_id].box_size += bytes_writen;
         pthread_mutex_unlock(&box_info_mutex[box_id]);
@@ -215,6 +223,9 @@ void subscriber(char *pipe_name, char *box_name) {
         }
 
         if (send_message_to_subscriber(pipe_fd, message) == -1) {
+            if (tfs_close(box_fd) < 0) {
+                exit(-1);
+            }
             break;
         }
 
@@ -223,11 +234,7 @@ void subscriber(char *pipe_name, char *box_name) {
 
     if (close(pipe_fd) < 0) {
         exit(-1);
-    }
-    
-    if (tfs_close(box_fd) < 0) {
-        exit(-1);
-    }
+    }  
 }
 
 void manager_box_creation(char *pipe_name, char *box_name) {

@@ -371,6 +371,7 @@ int tfs_unlink(char const *target) {
         }
 
         inode_delete(inumber);
+        remove_inode_from_open_file_table(inumber);
     }
 
     pthread_rwlock_unlock(&inode_rwlocks[inumber]);

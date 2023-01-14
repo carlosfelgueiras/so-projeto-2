@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
     char message[P_MESSAGE_SIZE]; // Array that will hold the messages
     memset(message, 0, P_MESSAGE_SIZE);
     while (1) {
-        int code;
+        uint8_t code;
         int msg_count;
         // if the pipe is closed exits the program
         ssize_t bytes_read = read(pipe_fd, &code, 1);

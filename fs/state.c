@@ -574,6 +574,15 @@ void remove_from_open_file_table(int fhandle) {
     pthread_mutex_unlock(&free_open_file_entries_mutex);
 }
 
+void remove_inode_from_open_file_table(int inum) {
+    for (int i = 0; i < MAX_OPEN_FILES; i++) {
+        open_file_entry_t *entry = get_open_file_entry(i);
+        if (entry != NULL && entry->of_inumber == inum) {
+            remove_from_open_file_table(i);
+        }
+    }
+}
+
 /**
  * Obtain pointer to a given entry in the open file table.
  *
