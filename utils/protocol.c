@@ -83,3 +83,17 @@ p_box_response p_build_box_listing_response(uint8_t last, p_box_info info) {
 
     return response;
 }
+
+void p_build_pub_message(char dest[P_PUB_MESSAGE_SIZE], char message[P_MESSAGE_SIZE]) {
+    memset(dest, 0, P_PUB_MESSAGE_SIZE);
+    
+    dest[0] = P_PUB_MESSAGE_CODE;
+    memcpy(dest + 1, message, P_MESSAGE_SIZE);
+}
+
+void p_build_sub_message(char dest[P_SUB_MESSAGE_SIZE], char message[P_MESSAGE_SIZE]) {
+    memset(dest, 0, P_SUB_MESSAGE_SIZE);
+
+    dest[0] = P_SUB_MESSAGE_CODE;
+    memcpy(dest+1, message, P_MESSAGE_SIZE);
+}

@@ -46,10 +46,9 @@ void register_in_mbroker(char *register_pipename, char *pipe_name,
 void send_message_to_mbroker(char *message) {
     char message_code[P_PUB_MESSAGE_SIZE] = {0};
 
-    // TODO: make function that builds this message
-    // Creating the code according to the protocol
-    message_code[0] = 9;
-    memcpy(message_code + 1, message, P_MESSAGE_SIZE);
+    // Creating the code
+    p_build_pub_message(message_code, message);
+    
     // Writing the code to the associated pipe
     ssize_t bytes_wr = write(pipe_fd, message_code, P_PUB_MESSAGE_SIZE);
     if (bytes_wr != P_PUB_MESSAGE_SIZE) {

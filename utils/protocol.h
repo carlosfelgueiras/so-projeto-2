@@ -73,3 +73,5 @@ p_response p_build_box_removal_response(int32_t return_code,
 void p_build_box_listing(char dest[P_BOX_LISTING_SIZE],
                          char pipe_name[P_PIPE_NAME_SIZE]);
 p_box_response p_build_box_listing_response(uint8_t last, p_box_info info);
+void p_build_pub_message(char dest[P_PUB_MESSAGE_SIZE], char message[P_MESSAGE_SIZE]);
+void p_build_sub_message(char dest[P_SUB_MESSAGE_SIZE], char message[P_MESSAGE_SIZE]);

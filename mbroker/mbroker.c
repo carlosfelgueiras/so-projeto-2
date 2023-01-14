@@ -78,13 +78,6 @@ void send_response_client_manager(int fd, char *message, u_int8_t choice) {
     }
 }
 
-void send_message_to_client(char *message) {
-    char message_code[P_SUB_MESSAGE_SIZE] = {0};
-    message_code[0] = 10;
-    memcpy(message_code + 1, message, 1024);
-    // Send to message pipe
-}
-
 void publisher(char *pipe_name, char *box_name) {
     char tmp_pipe_name[P_PIPE_NAME_SIZE + 5] = {0};
     sprintf(tmp_pipe_name, "/tmp/%s", pipe_name);
@@ -160,9 +153,11 @@ int send_message_to_subscriber(int pipe_fd, char *mes) {
             break;
         }
 
-        char buffer[P_SUB_MESSAGE_SIZE] = {0};
-        buffer[0] = P_SUB_MESSAGE_CODE;
-        strcpy(buffer + 1, mes + aux);
+        char message[P_MESSAGE_SIZE];
+        strcpy(message, mes + aux);
+        
+        char buffer[P_SUB_MESSAGE_SIZE];
+        p_build_sub_message(buffer, message);   
 
         ssize_t bytes_wr = write(pipe_fd, buffer, P_SUB_MESSAGE_SIZE);
         if (bytes_wr != P_SUB_MESSAGE_SIZE) {
